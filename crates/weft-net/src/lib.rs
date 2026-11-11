@@ -47,6 +47,8 @@ pub struct Interface {
     pub up: bool,
     /// Whether a default route goes through this interface.
     pub has_gateway: bool,
+    /// Default gateways reached through this interface.
+    pub gateways: Vec<IpAddr>,
     /// Link speed in bits per second, 0 if unknown.
     pub link_bps: u64,
     pub addrs: Vec<IpAddr>,

@@ -122,6 +122,12 @@ pub(crate) fn list_interfaces() -> io::Result<Vec<Interface>> {
                 dns.extend(sockaddr_ip((*d).Address.lpSockaddr));
                 d = (*d).Next;
             }
+            let mut gateways = Vec::new();
+            let mut g = a.FirstGatewayAddress;
+            while !g.is_null() {
+                gateways.extend(sockaddr_ip((*g).Address.lpSockaddr));
+                g = (*g).Next;
+            }
             let v4_index = a.Anonymous1.Anonymous.IfIndex;
             let index = if v4_index != 0 { v4_index } else { a.Ipv6IfIndex };
             let name = if a.AdapterName.is_null() {
@@ -145,7 +151,8 @@ pub(crate) fn list_interfaces() -> io::Result<Vec<Interface>> {
                 description: wide(a.Description),
                 medium,
                 up: a.OperStatus == IfOperStatusUp,
-                has_gateway: !a.FirstGatewayAddress.is_null(),
+                has_gateway: !gateways.is_empty(),
+                gateways,
                 link_bps: if speed == u64::MAX { 0 } else { speed },
                 addrs,
                 dns,

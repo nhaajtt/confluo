@@ -1,14 +1,19 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! The Weft download engine.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod disk;
+pub mod download;
+pub mod error;
+pub mod hash;
+pub mod http;
+pub mod journal;
+pub mod limit;
+pub mod name;
+pub mod probe;
+pub mod ranges;
+pub mod routes;
+pub mod sched;
+pub mod tuner;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use download::{Command, Config, Outcome, Phase, Route, Snapshot, Spec, Verdict, download};
+pub use error::{Error, Result};
+pub use hash::Checksum;

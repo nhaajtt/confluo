@@ -50,13 +50,16 @@ unsafe fn sockaddr_ip(sa: *const libc::sockaddr) -> Option<IpAddr> {
     }
 }
 
-fn default_route_ifaces() -> Vec<String> {
+/// `(interface, gateway)` for every IPv4 default route.
+fn default_route_ifaces() -> Vec<(String, IpAddr)> {
     let mut out = Vec::new();
     if let Ok(text) = std::fs::read_to_string("/proc/net/route") {
         for line in text.lines().skip(1) {
             let mut f = line.split_whitespace();
-            if let (Some(name), Some("00000000")) = (f.next(), f.next()) {
-                out.push(name.to_string());
+            if let (Some(name), Some("00000000"), Some(gw)) = (f.next(), f.next(), f.next()) {
+                // The kernel prints the gateway as little-endian hex.
+                let gw = u32::from_str_radix(gw, 16).map(u32::swap_bytes).unwrap_or(0);
+                out.push((name.to_string(), IpAddr::V4(Ipv4Addr::from(gw))));
             }
         }
     }
@@ -119,7 +122,8 @@ pub(crate) fn list_interfaces() -> io::Result<Vec<Interface>> {
                     description: String::new(),
                     medium: medium_of(&name, flags),
                     up: flags & libc::IFF_UP as u32 != 0 && flags & libc::IFF_RUNNING as u32 != 0,
-                    has_gateway: gateways.contains(&name),
+                    has_gateway: gateways.iter().any(|(n, _)| n == &name),
+                    gateways: gateways.iter().filter(|(n, _)| n == &name).map(|(_, g)| *g).collect(),
                     link_bps: speed,
                     addrs: Vec::new(),
                     dns: dns.clone(),

@@ -417,10 +417,10 @@ async fn handle(
     if let Some(v) = b.sha256_hex.as_deref().and_then(|v| HeaderValue::from_str(v).ok()) {
         h.insert("x-checksum-sha256", v);
     }
-    if let Some(name) = &b.filename {
-        if let Ok(v) = HeaderValue::from_str(&format!("attachment; filename=\"{name}\"")) {
-            h.insert(header::CONTENT_DISPOSITION, v);
-        }
+    if let Some(name) = &b.filename
+        && let Ok(v) = HeaderValue::from_str(&format!("attachment; filename=\"{name}\""))
+    {
+        h.insert(header::CONTENT_DISPOSITION, v);
     }
     h.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/octet-stream"));
 
@@ -476,10 +476,10 @@ async fn handle(
             let mut buf = vec![0u8; n];
             let pos = start + sent;
             fill(b.seed, pos, &mut buf);
-            if let Some(o) = corrupt_at {
-                if (pos..pos + n as u64).contains(&o) {
-                    buf[(o - pos) as usize] ^= 0xFF;
-                }
+            if let Some(o) = corrupt_at
+                && (pos..pos + n as u64).contains(&o)
+            {
+                buf[(o - pos) as usize] ^= 0xFF;
             }
             if let Some(r) = b.rate_per_conn {
                 conn_pacer.take(n, r).await;
