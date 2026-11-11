@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +20,10 @@ jobs:
       # The desktop shell needs system WebView libraries; it is built in the app job.
       - run: cargo clippy --workspace --exclude weft-app --all-targets -- -D warnings
       - run: cargo test --workspace --exclude weft-app
+      # Files past 4 GiB: slow, so only where disk and time are plentiful.
+      - if: matrix.os == 'ubuntu-latest'
+        run: cargo test --release -p weft-engine --test stress -- --ignored
+      - run: node --check extension/background.js && node --check extension/options.js && node --check site/main.js
 
   app:
     runs-on: windows-latest

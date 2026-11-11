@@ -37,6 +37,9 @@ Ctrl-C pauses; running the same command again continues.
 Browser extension: load the `extension/` folder as an unpacked extension, then paste the pairing
 code from Weft (Setup, Browser) into the extension.
 
+Download page: `node site/prepare.mjs [https://your.domain]` assembles `site/dist/` (the page, the
+installer, its SHA-256 and `install.ps1` with both filled in), ready to upload to any static host.
+
 ## Layout
 
 | Path | What it is |
@@ -48,7 +51,9 @@ code from Weft (Setup, Browser) into the extension.
 | `crates/weft-testsrv` | File server that misbehaves on purpose (caps, drops, stalls, no ranges, expiring links) |
 | `app/` | Desktop app (Tauri 2, SolidJS) |
 | `extension/` | Browser extension (Manifest V3) |
-| `bench/` | Benchmark harness and results |
+| `extension/test/` | Drives the unpacked extension in real Chromium and Firefox against the real app |
+| `site/` | Download page (English and Vietnamese) and the PowerShell install script |
+| `bench/` | Benchmark harness, kill-and-outage soak, results |
 
 ## How it works, and why
 
@@ -66,14 +71,23 @@ first data stream; other connections are opened while the probe is in flight; ea
 takes a share of the remaining bytes in proportion to its measured speed. A connection that
 finishes early takes over the tail of the slowest one.
 
-**The number of connections is measured, not assumed.** The tuner adds connections only while
-that buys at least 10% more speed, gives them back otherwise, and lowers a ceiling when the server
-refuses connections or the disk falls behind.
+**The number of connections is measured, not assumed.** The tuner starts with 8, waits for the
+speed to level off, and adds connections only while that buys at least 10% more speed; a jump of
+60% or more is accepted a quarter of a second after it shows, without waiting out the full second.
+It gives connections back when they bought nothing, holds still under a speed limit you set, and
+lowers a ceiling when the disk falls behind or the server refuses. A refusal says little about
+where the limit is (several connections are usually refused in the same instant), so the ceiling is
+tested with one extra connection a second later, and each test that is refused again doubles the
+wait up to a minute. A server that counts requests (HTTP 429) is tested every 15 s at most.
+
+**A stuck connection cannot hold the end of the file.** A connection reports its speed at least
+twice a second. One that reports nothing for two seconds, or would need more than five seconds for
+a small remainder, has the rest of its range handed to a faster connection.
 
 **One writer, one file handle, bounded queue.** A slow disk slows the sockets instead of filling
 memory. Space is reserved without zero-filling (sparse on NTFS, `fallocate` on Linux).
 
-**The journal never claims bytes that are not on disk.** About once a second the file is flushed
+**The journal never claims bytes that are not on disk.** Twice a second the file is flushed
 and then the list of completed byte ranges is replaced atomically. After a crash, exactly those
 ranges are kept.
 
@@ -94,9 +108,20 @@ routing and parallel flows.
 - Server-supplied file names are reduced to a plain name; nothing can be written outside the
   download folder (tested with `..\..\` names).
 - Cookies and credentials are sealed with Windows DPAPI before being saved; on other systems they
-  are not saved at all. They are only sent to the host they were given for.
-- The browser bridge listens on `127.0.0.1` only, refuses requests with a web `Origin` or a wrong
-  `Host` (DNS rebinding), and requires a pairing token. Baseline's equivalent has no secret.
+  are not saved at all. They go only to the origin of the link you gave: not to another host or
+  port after a redirect, and never from HTTPS down to HTTP.
+- A redirect from a public site to this computer or to a private or link-local address is refused.
+  (Only addresses written as such are recognised; a public name that resolves to a private address
+  is not.)
+- The browser bridge listens on `127.0.0.1` only and refuses requests with a web `Origin` or a wrong
+  `Host` (DNS rebinding). The extension never sends the pairing code: it checks that the listener
+  can sign a random number with the code (so another program on that port gets nothing), and signs
+  each offer, with a timestamp, using HMAC-SHA256. Baseline's equivalent has no secret.
+- File names from servers lose path separators, reserved Windows names and invisible characters
+  that reorder text (so `exe.pdf` tricks do not survive).
+- The saved list is written whole and flushed before it replaces the old one. On load, limits in it
+  are clamped, an unreadable list is set aside as `downloads.json.unreadable`, and a path in it is
+  only deleted or opened inside the download's own folder.
 - With a VPN active, automatic mode leaves routing to the system so traffic does not go around the
   VPN. Choosing an adapter by hand overrides that, and the app says so.
 

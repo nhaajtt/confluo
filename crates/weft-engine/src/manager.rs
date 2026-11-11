@@ -196,6 +196,8 @@ struct State {
 struct Inner {
     state: Mutex<State>,
     file: PathBuf,
+    /// Held while the list is written, so two saves never share the temporary file.
+    saving: Mutex<()>,
     book: Arc<RouteBook>,
     limiter: Arc<Limiter>,
     selection: watch::Sender<Selection>,
@@ -224,13 +226,16 @@ impl Manager {
     pub fn open(state_dir: &Path, default_download_dir: &Path) -> std::io::Result<Self> {
         std::fs::create_dir_all(state_dir)?;
         let file = state_dir.join("downloads.json");
-        let mut saved: Saved = std::fs::read(&file)
-            .ok()
-            .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or_else(|| Saved {
-                settings: Settings { download_dir: default_download_dir.into(), ..Settings::default() },
-                ..Saved::default()
-            });
+        let on_disk = std::fs::read(&file).ok();
+        let parsed: Option<Saved> = on_disk.as_deref().and_then(|b| serde_json::from_slice(&b).ok());
+        if parsed.is_none() && on_disk.is_some_and(|b| !b.is_empty()) {
+            // An unreadable list is set aside, not overwritten: it may still be repaired by hand.
+            let _ = std::fs::rename(&file, file.with_extension("json.unreadable"));
+        }
+        let mut saved: Saved = parsed.unwrap_or_else(|| Saved {
+            settings: Settings { download_dir: default_download_dir.into(), ..Settings::default() },
+            ..Saved::default()
+        });
         saved.settings.max_concurrent = saved.settings.max_concurrent.clamp(1, 16);
         saved.settings.connections_per_network = saved.settings.connections_per_network.clamp(1, 64);
         let items = saved
@@ -262,6 +267,7 @@ impl Manager {
         let inner = Arc::new(Inner {
             state: Mutex::new(State { settings: saved.settings, next_id: saved.next_id.max(1), items }),
             file,
+            saving: Mutex::new(()),
             book,
             limiter,
             selection,
@@ -476,6 +482,9 @@ impl Manager {
 
 impl Inner {
     fn save(&self) {
+        // The state is read under the same lock that orders the writes, so the
+        // file on disk is never older than a save that finished earlier.
+        let _writing = self.saving.lock().unwrap();
         let saved = {
             let st = self.state.lock().unwrap();
             Saved {
@@ -486,7 +495,15 @@ impl Inner {
         };
         let Ok(bytes) = serde_json::to_vec_pretty(&saved) else { return };
         let tmp = self.file.with_extension("json.tmp");
-        if std::fs::write(&tmp, bytes).is_ok() {
+        // Written in full and flushed before it replaces the old list: a crash or a
+        // power cut leaves either the old list or the new one, never half of one.
+        let written = (|| {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&tmp)?;
+            f.write_all(&bytes)?;
+            f.sync_all()
+        })();
+        if written.is_ok() {
             let _ = std::fs::rename(&tmp, &self.file);
         }
     }
