@@ -7,11 +7,13 @@ pub mod hash;
 pub mod http;
 pub mod journal;
 pub mod limit;
+pub mod manager;
 pub mod name;
 pub mod probe;
 pub mod ranges;
 pub mod routes;
 pub mod sched;
+pub mod secret;
 pub mod tuner;
 
 pub use download::{Command, Config, Outcome, Phase, Route, Snapshot, Spec, Verdict, download};

@@ -33,7 +33,7 @@ weft-net = { path = "../weft-net" }
 weft-testsrv = { path = "../weft-testsrv" }
 
 [target."cfg(windows)".dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_System_IO", "Win32_System_Ioctl", "Win32_Foundation", "Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.61.2", features = ["Win32_System_IO", "Win32_System_Ioctl", "Win32_Foundation", "Win32_Storage_FileSystem", "Win32_Security_Cryptography"] }
 
 [target."cfg(unix)".dependencies]
 libc = "0.2.191"
