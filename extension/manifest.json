@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Weft",
+  "version": "0.1.0",
+  "description": "Send downloads to the Weft download manager on this computer.",
+  "minimum_chrome_version": "121",
+  "permissions": ["downloads", "storage", "contextMenus"],
+  "optional_permissions": ["cookies"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "optional_host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js", "scripts": ["background.js"] },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
+  "action": { "default_title": "Weft", "default_popup": "options.html" },
+  "icons": { "32": "icon32.png", "128": "icon128.png" },
+  "browser_specific_settings": { "gecko": { "id": "weft@weft.dev", "strict_min_version": "128.0" } }
+}

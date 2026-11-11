@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Weft</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; padding: 16px; width: 320px; background: #0b0b0d; color: #dadbdf; font: 13px/1.45 system-ui, sans-serif; }
+      h1 { font: 700 13px ui-monospace, Consolas, monospace; letter-spacing: 0.14em; color: #fff; margin: 0 0 12px; }
+      label { display: block; margin: 12px 0 4px; font: 11px ui-monospace, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: #858990; }
+      input[type="text"] { width: 100%; box-sizing: border-box; background: #0b0b0d; color: #fff; border: 1px solid #212327; border-radius: 4px; padding: 7px 9px; font: 12px ui-monospace, Consolas, monospace; }
+      .check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; text-transform: none; letter-spacing: 0; font: 13px/1.4 system-ui, sans-serif; color: #dadbdf; }
+      button { margin-top: 12px; background: #fff; color: #0a0a0a; border: 0; border-radius: 4px; padding: 7px 14px; font: 600 12px ui-monospace, Consolas, monospace; cursor: pointer; }
+      :focus-visible { outline: 2px solid #ff7a17; outline-offset: 2px; }
+      #state { margin-top: 12px; font: 12px ui-monospace, Consolas, monospace; color: #858990; }
+      #state.ok { color: #39d98a; }
+      #state.bad { color: #ff5d5d; }
+      p { color: #858990; font-size: 12px; margin: 6px 0 0; }
+    </style>
+  </head>
+  <body>
+    <h1>WEFT</h1>
+    <label for="token">Pairing code</label>
+    <input id="token" type="text" autocomplete="off" spellcheck="false" placeholder="from Weft, Setup, Browser" />
+    <label class="check"><input id="capture" type="checkbox" /> <span>Hand new downloads to Weft</span></label>
+    <label class="check"><input id="cookies" type="checkbox" /> <span>Send the cookies of the site with each link</span></label>
+    <p>Needed for files behind a login. The extension then asks the browser for permission to read cookies.</p>
+    <button id="save">Save</button>
+    <div id="state" role="status" aria-live="polite"></div>
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+minimumReleaseAgeExclude:
+  - solid-js@1.9.19
+  - vite-plugin-solid@2.11.16
+  - vite@8.3.8

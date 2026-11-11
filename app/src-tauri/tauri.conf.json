@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Weft",
+  "version": "0.1.0",
+  "identifier": "dev.weft.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Weft",
+        "width": 1180,
+        "height": 760,
+        "minWidth": 860,
+        "minHeight": 560,
+        "backgroundColor": "#0b0b0d"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "licenseFile": "../../LICENSE",
+    "windows": { "nsis": { "installMode": "currentUser" } }
+  }
+}
