@@ -18,6 +18,8 @@ use crate::ranges::RangeSet;
 
 /// The longest a single lease is planned to take.
 const SHARE_HORIZON_SECS: f64 = 30.0;
+const SLOW_TAIL_SECS: f64 = 5.0;
+const SLOW_TAIL_PIECE: u64 = 8 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct SchedConfig {
@@ -48,8 +50,8 @@ impl Default for SchedConfig {
             max_piece: 1024 * 1024 * 1024,
             first_piece: 4 * 1024 * 1024,
             target_secs: 8.0,
-            min_steal: 256 * 1024,
-            min_steal_eta_secs: 1.0,
+            min_steal: 128 * 1024,
+            min_steal_eta_secs: 0.4,
             equal_split: true,
         }
     }
@@ -86,6 +88,8 @@ struct Active {
     /// False until the holder has reported a speed. A lease that has not delivered
     /// anything yet is not slow, it is new, so nobody takes its tail.
     measured: bool,
+    /// Calls to [`Scheduler::age`] this lease has seen without reporting a speed.
+    silent: u8,
 }
 
 impl Active {
@@ -103,12 +107,25 @@ pub struct Scheduler {
     steals: u64,
     /// Connections expected to work on this download at the same time.
     parallel: usize,
+    /// New connections are expected to be as fast as the ones already running.
+    even_thieves: bool,
+    /// Seconds a request waits for the first byte of its answer.
+    request_cost: f64,
 }
 
 impl Scheduler {
     /// `pending` is every byte that still has to be fetched.
     pub fn new(cfg: SchedConfig, pending: RangeSet) -> Self {
-        Self { cfg, pending, active: BTreeMap::new(), next_id: 1, steals: 0, parallel: 1 }
+        Self {
+            cfg,
+            pending,
+            active: BTreeMap::new(),
+            next_id: 1,
+            steals: 0,
+            parallel: 1,
+            even_thieves: false,
+            request_cost: 0.0,
+        }
     }
 
     /// Bytes not yet assigned to any connection.
@@ -137,6 +154,23 @@ impl Scheduler {
     /// Whether a connection asking now would get work.
     pub fn has_work(&self) -> bool {
         !self.pending.is_empty() || self.best_victim(0.0).is_some()
+    }
+
+    /// How many new connections could each take over part of a running lease.
+    pub fn stealable(&self) -> usize {
+        self.victims(0.0).count()
+    }
+
+    /// When every connection gets the same speed (the server caps each one), a new
+    /// connection takes half of a lease instead of a cautious third.
+    /// How long the server takes to start answering. Taking over a tail costs a
+    /// request, so a tail is only worth it when it lasts several times as long.
+    pub fn set_request_cost(&mut self, secs: f64) {
+        self.request_cost = secs.clamp(0.0, 5.0);
+    }
+
+    pub fn set_even_thieves(&mut self, on: bool) {
+        self.even_thieves = on;
     }
 
     /// Tells the scheduler how many connections the download is aiming for.
@@ -181,22 +215,39 @@ impl Scheduler {
         self.next_id += 1;
         let pos = Arc::new(AtomicU64::new(start));
         let end = Arc::new(AtomicU64::new(end));
-        self.active.insert(id, Active { pos: pos.clone(), end: end.clone(), rate, measured: rate > 0.0 });
+        self.active
+            .insert(id, Active { pos: pos.clone(), end: end.clone(), rate, measured: rate > 0.0, silent: 0 });
         Some(Lease { id, start, pos, end })
     }
 
-    fn best_victim(&self, thief_rate: f64) -> Option<u64> {
+    /// Leases worth splitting for a connection of the given speed, with the time
+    /// each holder still needs.
+    fn victims(&self, thief_rate: f64) -> impl Iterator<Item = (u64, f64)> + '_ {
         // A thief without a measured speed is a connection still starting up. It
         // needs more time to become useful, so the bar for splitting is higher.
-        let min_eta =
-            if thief_rate > 0.0 { self.cfg.min_steal_eta_secs } else { self.cfg.min_steal_eta_secs * 2.0 };
+        let warm = self.cfg.min_steal_eta_secs.max(self.request_cost * 6.0);
+        let min_eta = if thief_rate > 0.0 { warm } else { warm.max(self.cfg.min_steal_eta_secs * 5.0) };
         self.active
             .iter()
-            .filter(|(_, a)| a.measured && a.remaining() >= 2 * self.cfg.min_steal.max(1))
-            .map(|(id, a)| (*id, a.remaining() as f64 / a.rate.max(1.0)))
-            .filter(|(_, eta)| *eta >= min_eta)
-            .max_by(|a, b| a.1.total_cmp(&b.1))
-            .map(|(id, _)| id)
+            .filter(|(_, a)| a.measured)
+            .map(|(id, a)| (*id, a.remaining(), a.remaining() as f64 / a.rate.max(1.0)))
+            .filter(move |(_, left, eta)| *eta >= min_eta && *left >= 2 * self.steal_floor(*eta).max(1))
+            .map(|(id, _, eta)| (id, eta))
+    }
+
+    /// The smallest part of a lease worth a request of its own. A holder that would
+    /// need many seconds for a small remainder is a slow connection sitting on the
+    /// end of the file: then even a small part is worth taking away.
+    fn steal_floor(&self, holder_eta: f64) -> u64 {
+        if holder_eta >= SLOW_TAIL_SECS {
+            self.cfg.min_steal.min(SLOW_TAIL_PIECE)
+        } else {
+            self.cfg.min_steal
+        }
+    }
+
+    fn best_victim(&self, thief_rate: f64) -> Option<u64> {
+        self.victims(thief_rate).max_by(|a, b| a.1.total_cmp(&b.1)).map(|(id, _)| id)
     }
 
     fn steal(&mut self, thief_rate: f64) -> Option<(u64, u64)> {
@@ -207,13 +258,18 @@ impl Scheduler {
         let remaining = end.saturating_sub(pos);
         // The victim keeps a share proportional to its speed, so both finish together.
         // A thief that has not shown a speed yet is assumed to manage half the victim's.
-        let share = if thief_rate > 0.0 && victim.rate > 0.0 {
+        let share = if victim.rate <= 0.0 {
+            // The holder has shown nothing at all: leave it the least possible.
+            0.0
+        } else if thief_rate > 0.0 {
             victim.rate / (victim.rate + thief_rate)
+        } else if self.even_thieves {
+            0.5
         } else {
             2.0 / 3.0
         };
-        let keep =
-            ((remaining as f64 * share) as u64).clamp(self.cfg.min_steal, remaining - self.cfg.min_steal);
+        let floor = self.steal_floor(remaining as f64 / victim.rate.max(1.0));
+        let keep = ((remaining as f64 * share) as u64).clamp(floor, remaining - floor);
         let split = pos + keep;
         victim.end.store(split, Ordering::Release);
         self.steals += 1;
@@ -236,6 +292,20 @@ impl Scheduler {
         if let Some(a) = self.active.get_mut(&id) {
             a.rate = rate;
             a.measured = true;
+            a.silent = 0;
+        }
+    }
+
+    /// Called at a steady pace by the owner of the clock. A lease that has stayed
+    /// silent for `patience` calls is no longer new: it is stuck (behind a speed
+    /// limit, or on a dead path), and others may take its bytes.
+    pub fn age(&mut self, patience: u8) {
+        for a in self.active.values_mut() {
+            a.silent = a.silent.saturating_add(1);
+            if a.silent >= patience && !a.measured {
+                a.measured = true;
+                a.rate = 0.0;
+            }
         }
     }
 

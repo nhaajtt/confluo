@@ -261,6 +261,8 @@ struct Ctx {
     size: Option<u64>,
     /// Size learned at end of stream when the server did not announce one.
     final_size: AtomicU64,
+    /// Shortest time a request took to be answered, in microseconds.
+    first_byte_micros: AtomicU64,
     /// The server cannot serve ranges: one connection, from byte 0.
     whole: bool,
     /// The connection the probe used, still open, for whichever worker starts first on that route.
@@ -401,7 +403,17 @@ async fn fetch(
             *conn = Some(head.conn);
             head.response
         }
-        None => http::get(conn, route.route.bind.as_ref(), &url, &ctx.opts, &ask).await?.response,
+        None => {
+            // Only a request on an open connection times the server alone.
+            let reused = conn.is_some();
+            let asked = Instant::now();
+            let response = http::get(conn, route.route.bind.as_ref(), &url, &ctx.opts, &ask).await?.response;
+            if reused {
+                let micros = asked.elapsed().as_micros().min(u128::from(u64::MAX / 2)) as u64;
+                ctx.first_byte_micros.fetch_min(micros, Ordering::Relaxed);
+            }
+            response
+        }
     };
     http::check_status(&resp)?;
     let mut resp_end = UNKNOWN_END;
@@ -463,6 +475,7 @@ async fn fetch(
     let mut buf_at = start;
     let mut received = start;
     let mut clean_eof = false;
+    let mut flushed_at = Instant::now();
 
     // Hands the buffered bytes to the disk thread, never past the lease's current end
     // (it moves down when another connection takes over the tail).
@@ -525,8 +538,13 @@ async fn fetch(
             meter.add(n as u64, Instant::now());
             received += n as u64;
             buf.extend_from_slice(&data);
-            if buf.len() >= chunk {
-                flush(ctx, lease, &mut buf, &mut buf_at, meter.rate(Instant::now())).await?;
+            // A slow connection would take a long time to fill a chunk. Until it
+            // reports, the scheduler neither knows its speed nor can hand its tail to
+            // a faster one, so it reports on the clock as well.
+            let now = Instant::now();
+            if buf.len() >= chunk || now.duration_since(flushed_at) >= Duration::from_millis(500) {
+                flushed_at = now;
+                flush(ctx, lease, &mut buf, &mut buf_at, meter.rate(now)).await?;
             }
         }
         Ok(())
@@ -865,6 +883,7 @@ pub async fn download(
         sources,
         size,
         final_size: AtomicU64::new(u64::MAX),
+        first_byte_micros: AtomicU64::new(u64::MAX),
         whole,
         spare: Mutex::new(spare),
         cfg: cfg.clone(),
@@ -935,7 +954,8 @@ pub async fn download(
                         if whole { 1 } else { cfg.conns_max },
                         now,
                     ),
-                    meter: RateMeter::new(Duration::from_millis(250), now),
+                    // Shorter than a tick, so that every tick closes a sample.
+                    meter: RateMeter::new(cfg.tick.mul_f64(0.8), now),
                     last_bytes: 0,
                     failures: 0,
                     failed_at: None,
@@ -999,8 +1019,10 @@ pub async fn download(
                         } else if !error.transient() {
                             break 'run Err(error);
                         }
+                        let rate_limited = matches!(error, Error::Status { code: 429, .. });
+                        let still_active = run.shared.active.load(Ordering::Acquire);
                         if error.refusal() {
-                            run.tuner.refused(now, run.shared.active.load(Ordering::Acquire) + 1);
+                            run.tuner.refused(now, still_active + 1, rate_limited);
                         }
                         // Several connections failing in the same instant are one event, and a
                         // route that delivered data since its last failure starts over at one.
@@ -1012,9 +1034,17 @@ pub async fn download(
                         }
                         run.failures = run.failures.max(1);
                         run.failed_at = Some((now, delivered));
-                        let wait = if error.refusal() { refusal_backoff(run.failures) } else { backoff(run.failures) };
+                        let wait = if !error.refusal() {
+                            backoff(run.failures)
+                        } else if !rate_limited && still_active > 0 {
+                            // One connection too many while the others carry on: the tuner
+                            // decides when to test the limit again, nothing else has to wait.
+                            jitter(Duration::from_millis(500))
+                        } else {
+                            refusal_backoff(run.failures)
+                        };
                         run.next_spawn = now + error.retry_after().map_or(wait, |r| r.max(Duration::from_secs(1)));
-                        if matches!(error, Error::Status { code: 429, .. }) {
+                        if rate_limited {
                             ctx.sched.lock().unwrap().prefer_few_requests();
                             if !notes.iter().any(|n| n.contains("limits requests")) {
                                 notes.push("server limits requests; using fewer, longer ones".into());
@@ -1070,10 +1100,17 @@ pub async fn download(
         }
 
         let parallel: usize = runs.values().map(|r| r.tuner.target()).sum();
-        let (unassigned, has_work, steals, in_flight) = {
+        let capped = runs.values().any(|r| r.tuner.per_connection_capped());
+        let (unassigned, stealable, steals, in_flight) = {
             let mut s = ctx.sched.lock().unwrap();
             s.set_parallel(parallel.min(cfg.conns_total));
-            (s.unassigned(), s.has_work(), s.steals(), s.in_flight())
+            s.set_even_thieves(capped);
+            s.age((Duration::from_secs(2).as_millis() / cfg.tick.as_millis().max(1)).clamp(2, 200) as u8);
+            let micros = ctx.first_byte_micros.load(Ordering::Relaxed);
+            if micros != u64::MAX {
+                s.set_request_cost(micros as f64 / 1e6);
+            }
+            (s.unassigned(), s.stealable(), s.steals(), s.in_flight())
         };
         // Close to the end a new connection would still be in its handshake when the
         // others finish; only connections that are already open take over tails then.
@@ -1081,11 +1118,15 @@ pub async fn download(
             let rate = total_meter.rate(now);
             rate > 0.0 && in_flight as f64 / rate < 1.5
         };
+        let total_rate = total_meter.rate(now);
         let mut total_active: usize = runs.values().map(|r| r.shared.active.load(Ordering::Acquire)).sum();
         let mut budget = if unassigned > 0 {
             unassigned.div_ceil(ctx.cfg.sched.min_piece.max(1)).min(1024) as usize
+        } else if nearly_done {
+            0
         } else {
-            if has_work && !nearly_done { 4 } else { 0 }
+            // One new connection for every lease that is worth splitting.
+            stealable
         };
         let conns_total = if whole { 1 } else { cfg.conns_total };
         if let Some((bind, stream)) = head.take()
@@ -1120,7 +1161,13 @@ pub async fn download(
             if disk_slow {
                 run.tuner.disk_slow(now);
             }
-            run.tuner.tick(now, run.meter.rate(now), active, budget == 0);
+            let rate = run.meter.rate(now);
+            // Under a speed limit set by the user more connections cannot add anything;
+            // they would only cut the file into more and slower pieces.
+            let own_limit = run.shared.route.limiter.rate();
+            let limited = (own_limit > 0 && rate >= own_limit as f64 * 0.7)
+                || (cfg.limiter.rate() > 0 && total_rate >= cfg.limiter.rate() as f64 * 0.7);
+            run.tuner.tick(now, rate, run.meter.sample(), active, budget == 0 || limited);
             let target = run.tuner.target();
             run.shared.target.store(target, Ordering::Release);
             if now < run.next_spawn {

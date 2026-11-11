@@ -5,3 +5,4 @@ dist
 *.weft
 *.weft-journal
 /bench/tmp
+__pycache__/

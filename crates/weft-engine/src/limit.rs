@@ -61,18 +61,21 @@ pub struct RateMeter {
     bucket_start: Instant,
     bucket_bytes: u64,
     rate: f64,
+    /// Speed over the last closed bucket alone, without smoothing.
+    sample: f64,
     primed: bool,
 }
 
 impl RateMeter {
     /// `window` is the sampling bucket; the estimate smooths over a few buckets.
     pub fn new(window: Duration, now: Instant) -> Self {
-        Self { window, bucket_start: now, bucket_bytes: 0, rate: 0.0, primed: false }
+        Self { window, bucket_start: now, bucket_bytes: 0, rate: 0.0, sample: 0.0, primed: false }
     }
 
+    /// `bytes` arrived at or before `now`.
     pub fn add(&mut self, bytes: u64, now: Instant) {
-        self.roll(now);
         self.bucket_bytes += bytes;
+        self.roll(now);
     }
 
     fn roll(&mut self, now: Instant) {
@@ -82,9 +85,15 @@ impl RateMeter {
         }
         let sample = self.bucket_bytes as f64 / elapsed.as_secs_f64();
         self.rate = if self.primed { self.rate * 0.3 + sample * 0.7 } else { sample };
+        self.sample = sample;
         self.primed = true;
         self.bucket_start = now;
         self.bucket_bytes = 0;
+    }
+
+    /// The latest unsmoothed reading: quicker to show a change, and noisier.
+    pub fn sample(&self) -> f64 {
+        self.sample
     }
 
     /// Bytes per second. Before the first full bucket this is the raw average so far.
