@@ -1,0 +1,7 @@
+/target
+/ref
+node_modules
+dist
+*.weft
+*.weft-journal
+/bench/tmp
