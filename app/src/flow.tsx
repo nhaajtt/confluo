@@ -155,7 +155,8 @@ function Threads(props: { routes: () => RouteSnapshot[]; total: () => number; li
   // The dashes only move while something is downloading and the window is visible.
   const loop = (now: number) => {
     frame = 0;
-    if (now - last >= 30) draw(now);
+    // Twenty frames a second is smooth for drifting dashes and half the work of sixty.
+    if (now - last >= 48) draw(now);
     if (props.live() && !reducedMotion() && !document.hidden) frame = requestAnimationFrame(loop);
   };
   const wake = () => {

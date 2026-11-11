@@ -1,0 +1,63 @@
+{
+ "summary": {
+  "completed": true,
+  "intact": true,
+  "events": 12,
+  "seconds": 37.4,
+  "refetched_mib": 327.5,
+  "refetched_percent": 31.98,
+  "leftover_files": [],
+  "error": null
+ },
+ "events": [
+  {
+   "event": "kill-client",
+   "at_mib": 28.3
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 86.8
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 186.2
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 265.2
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 283.3
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 422.5
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 500.5
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 568.7
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 668.6
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 737.4
+  },
+  {
+   "event": "kill-client",
+   "at_mib": 867.3
+  },
+  {
+   "event": "server-outage",
+   "at_mib": 896.4,
+   "recovered_without_restart": true
+  }
+ ]
+}

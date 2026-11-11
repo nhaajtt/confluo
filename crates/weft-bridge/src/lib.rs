@@ -86,7 +86,7 @@ fn hex(bytes: &[u8]) -> String {
 
 fn unhex(text: &str) -> Option<Vec<u8>> {
     let t = text.trim();
-    if t.len() % 2 != 0 || !t.is_ascii() {
+    if !t.len().is_multiple_of(2) || !t.is_ascii() {
         return None;
     }
     (0..t.len()).step_by(2).map(|i| u8::from_str_radix(&t[i..i + 2], 16).ok()).collect()

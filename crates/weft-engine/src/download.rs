@@ -113,7 +113,7 @@ impl Default for Config {
             conns_total: 64,
             sched: SchedConfig::default(),
             write_chunk: 256 * 1024,
-            journal_interval: Duration::from_secs(1),
+            journal_interval: Duration::from_millis(500),
             tick: Duration::from_millis(250),
             give_up_after: None,
             limiter: Arc::default(),

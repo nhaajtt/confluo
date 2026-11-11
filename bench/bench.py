@@ -232,6 +232,9 @@ def run_baseline(url: str, out: Path, extra: list[str] | None = None) -> dict:
             "startup_seconds": last.get("startup_seconds")}
 
 
+# Two-sided 95% points of Student's t for small samples, by degrees of freedom.
+T95 = {1: 12.71, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 14: 2.145, 19: 2.093}
+
 SUBJECTS = {"weft-cli": run_weft_cli, "weft-app": run_weft_app, "baseline": run_baseline}
 
 
@@ -247,6 +250,10 @@ def summarise(runs: list[dict]) -> dict:
         "seconds": med("seconds"),
         "seconds_min": min(secs),
         "seconds_max": max(secs),
+        "seconds_mean": statistics.fmean(secs),
+        "seconds_stdev": statistics.stdev(secs) if len(secs) > 1 else 0.0,
+        # Half-width of the 95% confidence interval of the mean (Student's t).
+        "seconds_ci95": (T95.get(len(secs) - 1, 1.96) * statistics.stdev(secs) / len(secs) ** 0.5) if len(secs) > 1 else 0.0,
         "mib_per_sec": statistics.median([r["bytes"] / r["seconds"] / MIB for r in good]),
         "cpu_seconds": med("cpu_seconds"),
         "peak_rss_mib": (med("peak_rss") or 0) / MIB,
@@ -306,16 +313,16 @@ def main():
     stamp = time.strftime("%Y%m%d-%H%M%S")
     (outdir / f"{stamp}.json").write_text(json.dumps(results, indent=1))
     lines = [f"Benchmark {results['when']} (median of {args.runs} runs)", ""]
-    lines.append("| Scenario | Subject | Time (s) | Range | MiB/s | CPU (s) | Peak RAM (MiB) | Requests | Peak conns | Extra bytes sent |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|")
+    lines.append("| Scenario | Subject | Median (s) | Mean ± 95% CI (s) | Range | MiB/s | CPU (s) | Peak RAM (MiB) | Requests | Peak conns | Extra bytes sent |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for name, entry in results["scenarios"].items():
         for subject, data in entry["subjects"].items():
             s = data["summary"]
             if not s["ok"]:
-                lines.append(f"| {name} | {subject} | failed: {s.get('error')} | | | | | | | |")
+                lines.append(f"| {name} | {subject} | failed: {s.get('error')} | | | | | | | | |")
                 continue
             lines.append(
-                f"| {name} | {subject} | {s['seconds']:.2f} | {s['seconds_min']:.2f}-{s['seconds_max']:.2f} | {s['mib_per_sec']:.1f} | {s['cpu_seconds']:.1f} | {s['peak_rss_mib']:.0f} | {s['server_requests']:.0f} | {s['server_peak_connections']:.0f} | {s['overhead_percent']:.1f}% |"
+                f"| {name} | {subject} | {s['seconds']:.2f} | {s['seconds_mean']:.2f} ± {s['seconds_ci95']:.2f} | {s['seconds_min']:.2f}-{s['seconds_max']:.2f} | {s['mib_per_sec']:.1f} | {s['cpu_seconds']:.1f} | {s['peak_rss_mib']:.0f} | {s['server_requests']:.0f} | {s['server_peak_connections']:.0f} | {s['overhead_percent']:.1f}% |"
             )
     (outdir / f"{stamp}.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))

@@ -1,0 +1,9 @@
+{
+  "name": "weft-extension-browser-test",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "^1.50.0",
+    "selenium-webdriver": "^4.27.0"
+  }
+}

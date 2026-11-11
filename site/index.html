@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weft: every network you have, woven into one download</title>
+<meta name="description" content="Weft is a free download manager for Windows that splits one download across several connections and several networks at once, survives crashes, and tells you what is limiting the speed.">
+<meta name="theme-color" content="#07090c">
+<meta property="og:title" content="Weft: every network you have, woven into one download">
+<meta property="og:description" content="A free download manager for Windows. Several connections, several networks, one file.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="preload" href="fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main" data-vi="Bỏ qua, tới nội dung">Skip to content</a>
+
+<header class="top">
+  <a class="brand" href="#" aria-label="Weft">
+    <svg viewBox="0 0 28 28" width="22" height="22" aria-hidden="true"><path d="M2 6c9 0 9 8 16 8M2 14h16M2 22c9 0 9-8 16-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="21.5" cy="14" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <span>weft</span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="#how" data-vi="Cách hoạt động">How it works</a>
+    <a href="#numbers" data-vi="Số đo">Numbers</a>
+    <a href="#browser" data-vi="Trình duyệt">Browser</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="vi" aria-pressed="false">VI</button>
+    <button type="button" data-lang="en" aria-pressed="true">EN</button>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow"><span class="dot"></span><span data-vi="Trình quản lý tải xuống cho Windows · miễn phí">Download manager for Windows · free</span></p>
+    <h1>
+      <span data-vi="Mọi đường mạng bạn có,">Every network you have,</span>
+      <em data-vi="dệt thành một lần tải.">woven into one download.</em>
+    </h1>
+    <p class="lede" data-vi="Weft chia một file thành nhiều luồng và gửi chúng qua mọi mạng máy bạn đang có: dây LAN, Wi-Fi, điện thoại phát 4G. Mất điện hay rớt mạng giữa chừng thì tải tiếp từ đúng chỗ dừng, và app luôn nói rõ thứ gì đang kìm tốc độ.">Weft splits one file into many streams and sends them over every network your PC has: Ethernet, Wi-Fi, a phone hotspot. If the power or the connection drops, it carries on from where it stopped, and it always tells you what is holding the speed back.</p>
+
+    <div class="install">
+      <div class="cmd" role="group" aria-label="Install command">
+        <span class="ps" aria-hidden="true">PS&gt;</span>
+        <code id="cmd">powershell -c "irm https://weft.nhaajt.com/install.ps1 | iex"</code>
+        <button type="button" id="copy" data-vi="Chép" data-done-en="Copied" data-done-vi="Đã chép">Copy</button>
+      </div>
+      <div class="cta">
+        <a class="btn primary" href="download/Weft-setup.exe" download>
+          <span data-vi="Tải file .exe">Download .exe</span> <span aria-hidden="true">↓</span>
+        </a>
+        <span class="meta" data-vi="Windows 10 và 11, x64 · 2,3 MB · không cần quyền admin">Windows 10 and 11, x64 · 2.3 MB · no admin needed</span>
+      </div>
+      <p class="fine" data-vi="Dán lệnh vào PowerShell hoặc Terminal. Lệnh tải bộ cài, kiểm tra mã SHA-256 rồi cài cho riêng tài khoản của bạn.">Paste the command into PowerShell or Terminal. It downloads the installer, checks its SHA-256 and installs for your account only.</p>
+    </div>
+  </div>
+
+  <figure class="stage" aria-labelledby="stage-cap">
+    <div class="stage-top">
+      <canvas id="threads" width="520" height="190" role="img" aria-label="Three networks drawn as threads that join into one stream"></canvas>
+      <div class="read">
+        <span class="lbl" data-vi="Tổng tốc độ">Total speed</span>
+        <span class="big"><b id="total">0.0</b><small>MiB/s</small></span>
+        <span class="sub" id="avgpeak">avg 0.0 · peak 0.0</span>
+        <span class="sub limit" id="limit" data-vi="giới hạn: đường mạng">limit: network path</span>
+      </div>
+    </div>
+    <div class="stage-head"><span class="lbl" data-vi="Lưu lượng · 60 giây gần nhất">Throughput · last 60 s</span></div>
+    <canvas id="chart" width="900" height="150" role="img" aria-label="Stacked chart of the speed each network carried over the last minute"></canvas>
+    <figcaption id="stage-cap" data-vi="Minh hoạ màn hình “Live flow” trong app. Số ở đây là mô phỏng; số đo thật ở phần bên dưới.">An illustration of the app's “Live flow” view. These numbers are simulated; the measured ones are further down.</figcaption>
+  </figure>
+</section>
+
+<section class="facts" aria-label="At a glance">
+  <div><b>2.3 MB</b><span data-vi="bộ cài, không kèm trình duyệt riêng">installer, no bundled browser</span></div>
+  <div><b>0.5 s</b><span data-vi="từ lúc mở đến lúc sẵn sàng nhận file">from launch to ready for a download</span></div>
+  <div><b>0</b><span data-vi="tài khoản, quảng cáo, đo lường từ xa">accounts, ads, telemetry</span></div>
+  <div><b>SHA-256</b><span data-vi="kiểm tra file khi máy chủ công bố mã">verified when the server publishes one</span></div>
+</section>
+
+<section id="how" class="block">
+  <p class="kicker">01 · <span data-vi="Cách hoạt động">How it works</span></p>
+  <h2 data-vi="Bốn việc Weft làm khác đi">Four things Weft does differently</h2>
+  <div class="cards">
+    <article>
+      <span class="n">A</span>
+      <h3 data-vi="Thêm luồng chỉ khi có ích">More streams only when they help</h3>
+      <p data-vi="Weft bắt đầu với 8 kết nối, đo tốc độ, rồi tăng lên 16 hay 32 chỉ khi tốc độ thật sự tăng theo. Máy chủ từ chối thì nó lùi lại và thử lại sau một giây, không dội liên tục.">It starts with 8 connections, measures, and goes to 16 or 32 only if the speed really follows. When a server says no, it steps back and asks again a second later instead of hammering.</p>
+    </article>
+    <article>
+      <span class="n">B</span>
+      <h3 data-vi="Dùng mọi mạng cùng lúc">Every network at once</h3>
+      <p data-vi="Mỗi kết nối được ghim vào đúng card mạng của nó, nên dây LAN và Wi-Fi thật sự cùng tải một file. Mạng nào nhanh hơn nhận phần lớn hơn; mạng nào rớt, phần của nó được chuyển sang mạng còn lại.">Each connection is pinned to its own adapter, so Ethernet and Wi-Fi really carry the same file together. The faster one takes the larger share; if one drops, the others take over its part.</p>
+    </article>
+    <article>
+      <span class="n">C</span>
+      <h3 data-vi="Tắt máy đột ngột vẫn tải tiếp">A crash is not a restart</h3>
+      <p data-vi="Hai lần mỗi giây, Weft ghi lại những byte đã nằm chắc trên đĩa. Trong bài thử, tiến trình bị giết 11 lần và máy chủ biến mất một lần giữa một file 1 GB: file cuối vẫn đúng từng byte.">Twice a second Weft records which bytes are safely on disk. In testing the process was killed 11 times and the server taken away once during a 1 GB file: the result was still byte-exact.</p>
+    </article>
+    <article>
+      <span class="n">D</span>
+      <h3 data-vi="Nói rõ thứ gì đang chậm">It says what is slow</h3>
+      <p data-vi="Đường mạng, máy chủ giới hạn từng kết nối, máy chủ từ chối kết nối, ổ đĩa, hay giới hạn bạn tự đặt: app chỉ ra đúng một nguyên nhân thay vì để bạn đoán.">The network path, a server that caps each connection, a server refusing connections, the disk, or your own limit: the app names the one cause instead of leaving you to guess.</p>
+    </article>
+  </div>
+</section>
+
+<section id="numbers" class="block">
+  <p class="kicker">02 · <span data-vi="Số đo">Numbers</span></p>
+  <h2 data-vi="Đo thật, kể cả chỗ không thắng">Measured, including where it does not win</h2>
+  <p class="lede small" data-vi="Cùng một máy, cùng một máy chủ thử chạy tại chỗ, so với Baseline (một trình tải đa mạng mã nguồn mở). Thời gian là trung vị; thấp hơn là tốt hơn.">Same PC, same local test server, against Baseline (an open-source multi-network downloader). Times are medians; lower is better.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col" data-vi="Tình huống">Scenario</th>
+          <th scope="col">Weft</th>
+          <th scope="col">Baseline</th>
+          <th scope="col" data-vi="Chênh lệch">Difference</th>
+        </tr>
+      </thead>
+      <tbody id="bench">
+        <tr><td colspan="4" data-vi="Đang cập nhật số đo.">Measurements are being updated.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="fine" id="bench-note" data-vi="Máy chủ thử nằm trên cùng máy, nên đây là so sánh phần mềm với phần mềm chứ không phải tốc độ Internet của bạn. Hai mạng chỉ cộng tốc độ khi chúng ra Internet bằng hai đường khác nhau.">The test server runs on the same machine, so this compares software with software, not your internet speed. Two networks only add up when they reach the internet through two different lines.</p>
+</section>
+
+<section id="browser" class="block split">
+  <div>
+    <p class="kicker">03 · <span data-vi="Trình duyệt">Browser</span></p>
+    <h2 data-vi="Bấm tải trong trình duyệt, Weft nhận lấy">Click download in the browser, Weft takes it</h2>
+    <p class="lede small" data-vi="Tiện ích đi kèm chuyển các lần tải từ Chrome, Edge hoặc Firefox sang Weft. Nó chỉ nói chuyện với đúng một địa chỉ: 127.0.0.1 trên máy bạn.">The companion extension hands downloads from Chrome, Edge or Firefox to Weft. It talks to exactly one address: 127.0.0.1 on your own PC.</p>
+  </div>
+  <ul class="checks">
+    <li data-vi="Ghép đôi bằng một mã chỉ có trên máy bạn. Mã không bao giờ được gửi đi: hai bên chỉ chứng minh là mình biết nó.">Paired with a code that exists only on your PC. The code is never sent: each side only proves it knows it.</li>
+    <li data-vi="Trang web không chạm được vào Weft; mọi yêu cầu mang nguồn gốc web đều bị từ chối.">Web pages cannot reach Weft; any request with a web origin is refused.</li>
+    <li data-vi="Nếu Weft chưa mở, trình duyệt cứ tải như bình thường. Không có file nào bị tải hai lần.">If Weft is not running, the browser downloads as usual. Nothing is ever fetched twice.</li>
+    <li data-vi="Đã chạy thử trên Chromium 156 và Firefox 160 thật.">Tested in real Chromium 156 and Firefox 160.</li>
+  </ul>
+</section>
+
+<section id="faq" class="block">
+  <p class="kicker">04 · FAQ</p>
+  <h2 data-vi="Hỏi nhanh, đáp thật">Short questions, straight answers</h2>
+  <div class="faq">
+    <details>
+      <summary data-vi="Có miễn phí không?">Is it free?</summary>
+      <p data-vi="Có. Không tài khoản, không quảng cáo, không bản trả tiền. Mã nguồn theo giấy phép MIT.">Yes. No account, no ads, no paid tier. The source is under the MIT licence.</p>
+    </details>
+    <details>
+      <summary data-vi="Hai mạng thì nhanh gấp đôi?">Do two networks make it twice as fast?</summary>
+      <p data-vi="Chỉ khi chúng là hai đường Internet khác nhau, ví dụ cáp quang ở nhà cộng với 4G từ điện thoại. Dây LAN và Wi-Fi cắm chung một modem vẫn chỉ là một đường; Weft nhận ra điều đó và báo cho bạn.">Only when they are two different internet lines, such as home fibre plus a phone's 4G. Ethernet and Wi-Fi on the same router are still one line; Weft notices that and tells you.</p>
+    </details>
+    <details>
+      <summary data-vi="Windows hiện cảnh báo khi cài, có sao không?">Windows shows a warning when I install. Is that expected?</summary>
+      <p data-vi="Có thể. Bộ cài chưa được ký số nên SmartScreen có thể hỏi lại. Lệnh cài ở trên kiểm tra mã SHA-256 của bộ cài trước khi chạy.">It can. The installer is not code-signed yet, so SmartScreen may ask you to confirm. The install command above checks the installer's SHA-256 before running it.</p>
+    </details>
+    <details>
+      <summary data-vi="Có tải torrent hay video trên các trang phát trực tuyến không?">Does it do torrents or streaming-site videos?</summary>
+      <p data-vi="Không. Weft tải file qua HTTP và HTTPS, và cố làm thật tốt việc đó.">No. Weft downloads files over HTTP and HTTPS and tries to do that one thing well.</p>
+    </details>
+    <details>
+      <summary data-vi="Có bản cho macOS hoặc Linux không?">Is there a macOS or Linux version?</summary>
+      <p data-vi="Chưa có ứng dụng. Phần lõi được viết để chạy trên cả ba hệ, nhưng hiện mới chỉ có bản Windows được thử đầy đủ.">Not as an app yet. The engine is written for all three systems, but only the Windows build has been tested in full so far.</p>
+    </details>
+    <details>
+      <summary data-vi="Gỡ cài đặt thế nào?">How do I uninstall it?</summary>
+      <p data-vi="Vào Settings, Apps, chọn Weft rồi Uninstall. File chương trình và mục trong Start Menu sẽ biến mất; các file bạn đã tải thì ở lại.">Settings, Apps, Weft, Uninstall. The program files and the Start Menu entry go; the files you downloaded stay.</p>
+    </details>
+  </div>
+</section>
+
+<section class="closer">
+  <h2><span data-vi="Sẵn sàng tải nhanh hơn?">Ready when your next big file is.</span></h2>
+  <a class="btn primary" href="download/Weft-setup.exe" download><span data-vi="Tải file .exe">Download .exe</span> <span aria-hidden="true">↓</span></a>
+  <p class="fine"><span data-vi="Mã SHA-256 của bộ cài:">Installer SHA-256:</span> <code id="sha">—</code></p>
+</section>
+</main>
+
+<footer class="foot">
+  <span>Weft · <span data-vi="làm bởi">made by</span> <a href="https://www.nhaajt.com/" rel="noopener">Nhaajt</a></span>
+  <span data-vi="Chạy hoàn toàn trên máy bạn. Trang này không dùng cookie hay công cụ theo dõi.">Runs entirely on your PC. This page uses no cookies and no trackers.</span>
+</footer>
+
+<script src="main.js" defer></script>
+</body>
+</html>

@@ -4,8 +4,24 @@
 import { createEffect, onCleanup, onMount } from "solid-js";
 import { tick } from "./store";
 
+// Reading a style forces the browser to resolve all of them, and the drawings ask
+// for a dozen colours per frame. They change only with the theme and the accent,
+// so they are kept until one of those changes.
+const styleCache = new Map<string, string>();
+let styleCacheFor = "";
+
 export function css(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const look = `${document.documentElement.dataset.theme}|${document.documentElement.dataset.accent}`;
+  if (look !== styleCacheFor) {
+    styleCache.clear();
+    styleCacheFor = look;
+  }
+  let v = styleCache.get(name);
+  if (v === undefined) {
+    v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    styleCache.set(name, v);
+  }
+  return v;
 }
 
 /// Sizes a canvas for the screen's pixel density and returns a context in CSS pixels.
