@@ -210,6 +210,8 @@ struct Source {
     last_modified: Option<String>,
     active: AtomicUsize,
     dead: AtomicBool,
+    /// Counts link refreshes, so a failure can tell whether it used the old link.
+    generation: AtomicU64,
 }
 
 impl Source {
@@ -221,6 +223,7 @@ impl Source {
             last_modified: p.last_modified.clone(),
             active: AtomicUsize::new(0),
             dead: AtomicBool::new(false),
+            generation: AtomicU64::new(0),
         }
     }
 
@@ -290,6 +293,8 @@ enum Exit {
     Surplus,
     Failed {
         source: usize,
+        /// The link generation the failed request used.
+        generation: u64,
         error: Error,
     },
 }
@@ -309,6 +314,7 @@ async fn worker(guard: ActiveGuard) -> Exit {
         }
         let rate = meter.rate(Instant::now());
         let Some(lease) = ctx.sched.lock().unwrap().acquire(rate) else { return Exit::NoWork };
+        let generation = ctx.sources[source].generation.load(Ordering::Acquire);
         let release = LeaseGuard { ctx: &ctx, id: lease.id };
         let result = fetch(&ctx, &route, source, &mut conn, &lease, &mut meter).await;
         if ctx.whole && result.is_err() {
@@ -320,7 +326,7 @@ async fn worker(guard: ActiveGuard) -> Exit {
         match result {
             Ok(true) => {}
             Ok(false) => conn = None,
-            Err(error) => return Exit::Failed { source, error },
+            Err(error) => return Exit::Failed { source, generation, error },
         }
     }
 }
@@ -534,6 +540,12 @@ async fn same_content(
 fn jitter(base: Duration) -> Duration {
     let r = std::collections::hash_map::RandomState::new().build_hasher().finish();
     base.mul_f64(0.8 + (r % 1000) as f64 / 2500.0)
+}
+
+/// Back-off after the server said "too many requests": longer, because every
+/// retry is itself a request that counts against the limit.
+fn refusal_backoff(failures: u32) -> Duration {
+    jitter(Duration::from_secs(2u64.saturating_mul(1 << failures.min(5)).min(60)))
 }
 
 fn backoff(failures: u32) -> Duration {
@@ -835,7 +847,12 @@ pub async fn download(
                 match exit {
                     None | Some(Exit::Surplus) => {}
                     Some(Exit::NoWork) => run.next_spawn = now + cfg.tick,
-                    Some(Exit::Failed { source, error }) => {
+                    Some(Exit::Failed { source, generation, error }) => {
+                        if error.maybe_expired() && generation < ctx.sources[source].generation.load(Ordering::Acquire) {
+                            // It used a link that has been replaced since: just go again.
+                            run.next_spawn = now;
+                            continue;
+                        }
                         let text = error.to_string();
                         last_error = Some(text.clone());
                         run.error = Some(text);
@@ -854,7 +871,12 @@ pub async fn download(
                                 Err(Error::LinkExpired)
                             };
                             match fresh_probe {
-                                Ok(p) if p.size == size && p.ranges == !whole => *src.current.lock().unwrap() = p.url,
+                                Ok(p) if p.size == size && p.ranges == !whole => {
+                                    *src.current.lock().unwrap() = p.url;
+                                    src.generation.fetch_add(1, Ordering::AcqRel);
+                                    run.next_spawn = now;
+                                    continue;
+                                }
                                 Ok(_) => break 'run Err(Error::FileChanged),
                                 Err(e) if e.transient() => {}
                                 Err(_) if healthy_others => {
@@ -870,7 +892,14 @@ pub async fn download(
                             run.tuner.refused(now, run.shared.active.load(Ordering::Acquire) + 1);
                         }
                         run.failures += 1;
-                        run.next_spawn = now + error.retry_after().unwrap_or_else(|| backoff(run.failures));
+                        let wait = if error.refusal() { refusal_backoff(run.failures) } else { backoff(run.failures) };
+                        run.next_spawn = now + error.retry_after().map_or(wait, |r| r.max(Duration::from_secs(1)));
+                        if matches!(error, Error::Status { code: 429, .. }) {
+                            ctx.sched.lock().unwrap().prefer_few_requests();
+                            if !notes.iter().any(|n| n.contains("limits requests")) {
+                                notes.push("server limits requests; using fewer, longer ones".into());
+                            }
+                        }
                     }
                 }
                 continue;
@@ -994,7 +1023,7 @@ pub async fn download(
                 Err(e) => break 'run Err(Error::Disk(e)),
             }
             // A slow flush (spinning disk) must not eat the disk's time: back off.
-            journal_gap = cfg.journal_interval.max(t.elapsed() * 10).min(Duration::from_secs(30));
+            journal_gap = cfg.journal_interval.max(t.elapsed() * 5).min(Duration::from_secs(30));
             next_journal = Instant::now() + journal_gap;
         }
 

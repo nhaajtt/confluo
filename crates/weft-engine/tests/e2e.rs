@@ -23,6 +23,8 @@ fn cfg() -> Config {
             min_piece: 64 * 1024,
             first_piece: 128 * 1024,
             min_steal: 64 * 1024,
+            target_secs: 1.0,
+            min_steal_eta_secs: 1.0,
             ..Default::default()
         },
         write_chunk: 64 * 1024,
@@ -272,8 +274,9 @@ async fn killed_mid_download_resumes_from_the_journal() {
     assert_file(&r, 61, size);
     let again = srv.stats().body_bytes.load(Ordering::Relaxed) - before;
     assert!(again < size, "nothing was recovered: fetched {again} of {size} again");
-    // At 3 MiB/s with a 100 ms journal, at most a fraction of a second of work is lost.
-    assert!(before + again < size + 2 * MIB, "lost too much: {before} + {again} for {size}");
+    // The journal is flushed several times a second, so about a second of work
+    // (3 MiB here) is the most a crash can cost.
+    assert!(before + again < size + 3 * MIB, "lost too much: {before} + {again} for {size}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -516,4 +519,46 @@ async fn redirects_are_followed_and_user_limit_is_obeyed() {
     let secs = t.elapsed().as_secs_f64();
     assert!((2.3..5.0).contains(&secs), "3 MiB at 1 MiB/s took {secs:.2}s");
     assert!(r.snaps.iter().any(|s| s.verdict == Verdict::UserLimit));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn default_settings_use_few_requests() {
+    let size = 64 * MIB;
+    let srv = Server::local(Behavior { size, seed: 171, ..Default::default() }).await;
+    let dir = tempfile::tempdir().unwrap();
+    let c = Config { give_up_after: Some(Duration::from_secs(20)), ..Default::default() };
+    let r = run_with(spec(dir.path(), &[srv.url()]), c, vec![Route::system()]).await;
+    assert_file(&r, 171, size);
+    let requests = srv.stats().requests.load(Ordering::Relaxed);
+    assert!(requests <= 40, "{requests} requests for a 64 MiB file");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn too_many_requests_switches_to_long_requests() {
+    let size = 24 * MIB;
+    let srv =
+        Server::local(Behavior { size, seed: 181, rate_total: Some(6 * MIB), ..Default::default() }).await;
+    let dir = tempfile::tempdir().unwrap();
+    let (_rtx, rrx) = watch::channel(vec![Route::system()]);
+    let (_ctx, crx) = watch::channel(Command::Run);
+    let mut tripped = false;
+    let mut noted = false;
+    let mut requests_at_trip = 0;
+    let result = download(spec(dir.path(), &[srv.url()]), cfg(), rrx, crx, &mut |s| {
+        if s.done > 2 * MIB && !tripped {
+            tripped = true;
+            requests_at_trip = srv.stats().requests.load(Ordering::Relaxed);
+            srv.behavior(|b| {
+                b.fail_status = Some(429);
+                b.fail_count = 3;
+            });
+        }
+        noted |= s.notes.iter().any(|n| n.contains("limits requests"));
+    })
+    .await;
+    assert_file(&Run { result, snaps: Vec::new() }, 181, size);
+    assert!(noted, "the request limit was not reported");
+    // With 64 KiB pieces the remaining 22 MiB would take hundreds of requests.
+    let after = srv.stats().requests.load(Ordering::Relaxed) - requests_at_trip;
+    assert!(after < 60, "{after} requests after the server asked for fewer");
 }

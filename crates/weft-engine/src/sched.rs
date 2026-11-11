@@ -35,12 +35,14 @@ pub struct SchedConfig {
 impl Default for SchedConfig {
     fn default() -> Self {
         Self {
-            min_piece: 256 * 1024,
-            max_piece: 64 * 1024 * 1024,
-            first_piece: 1024 * 1024,
-            target_secs: 3.0,
-            min_steal: 512 * 1024,
-            min_steal_eta_secs: 1.5,
+            // Every range costs the server a request, and some servers count requests.
+            // Ranges are therefore long: a 100 MiB file takes around a dozen requests.
+            min_piece: 1024 * 1024,
+            max_piece: 256 * 1024 * 1024,
+            first_piece: 4 * 1024 * 1024,
+            target_secs: 8.0,
+            min_steal: 1024 * 1024,
+            min_steal_eta_secs: 3.0,
         }
     }
 }
@@ -73,6 +75,9 @@ struct Active {
     pos: Arc<AtomicU64>,
     end: Arc<AtomicU64>,
     rate: f64,
+    /// False until the holder has reported a speed. A lease that has not delivered
+    /// anything yet is not slow, it is new, so nobody takes its tail.
+    measured: bool,
 }
 
 impl Active {
@@ -126,9 +131,9 @@ impl Scheduler {
 
     fn piece_for(&self, rate: f64) -> u64 {
         if rate <= 0.0 {
-            return self.cfg.first_piece.clamp(self.cfg.min_piece, self.cfg.max_piece);
+            return self.cfg.first_piece.min(self.cfg.max_piece).max(self.cfg.min_piece);
         }
-        ((rate * self.cfg.target_secs) as u64).clamp(self.cfg.min_piece, self.cfg.max_piece)
+        ((rate * self.cfg.target_secs) as u64).min(self.cfg.max_piece).max(self.cfg.min_piece)
     }
 
     /// Gives the caller a range to fetch. `rate` is the caller's measured speed in bytes/s
@@ -142,14 +147,14 @@ impl Scheduler {
         self.next_id += 1;
         let pos = Arc::new(AtomicU64::new(start));
         let end = Arc::new(AtomicU64::new(end));
-        self.active.insert(id, Active { pos: pos.clone(), end: end.clone(), rate });
+        self.active.insert(id, Active { pos: pos.clone(), end: end.clone(), rate, measured: rate > 0.0 });
         Some(Lease { id, start, pos, end })
     }
 
     fn best_victim(&self, _thief_rate: f64) -> Option<u64> {
         self.active
             .iter()
-            .filter(|(_, a)| a.remaining() >= 2 * self.cfg.min_steal)
+            .filter(|(_, a)| a.measured && a.remaining() >= 2 * self.cfg.min_steal.max(1))
             .map(|(id, a)| (*id, a.remaining() as f64 / a.rate.max(1.0)))
             .filter(|(_, eta)| *eta >= self.cfg.min_steal_eta_secs)
             .max_by(|a, b| a.1.total_cmp(&b.1))
@@ -176,10 +181,22 @@ impl Scheduler {
         Some((split, end))
     }
 
+    /// Switches to as few requests as possible: every connection takes the whole next
+    /// unassigned stretch and keeps it until it is done or another connection takes
+    /// over its tail. Used when a server limits the number of requests.
+    pub fn prefer_few_requests(&mut self) {
+        self.cfg.first_piece = u64::MAX;
+        self.cfg.min_piece = u64::MAX;
+        self.cfg.max_piece = u64::MAX;
+        self.cfg.min_steal = self.cfg.min_steal.max(8 * 1024 * 1024);
+        self.cfg.min_steal_eta_secs = self.cfg.min_steal_eta_secs.max(10.0);
+    }
+
     /// Updates the speed the scheduler assumes for a lease.
     pub fn set_rate(&mut self, id: u64, rate: f64) {
         if let Some(a) = self.active.get_mut(&id) {
             a.rate = rate;
+            a.measured = true;
         }
     }
 
@@ -227,14 +244,16 @@ mod tests {
 
     #[test]
     fn steal_takes_tail_and_shrinks_victim() {
-        let mut s = Scheduler::new(cfg(), RangeSet::full(100));
-        let a = s.acquire(1000.0).unwrap();
-        assert_eq!((a.start, a.end()), (0, 100));
-        a.pos.store(20, Ordering::Release);
+        let mut s = Scheduler::new(cfg(), RangeSet::full(50));
+        let a = s.acquire(0.0).unwrap();
+        assert_eq!((a.start, a.end()), (0, 50));
+        a.pos.store(10, Ordering::Release);
+        // A lease that has not reported a speed yet is new, not slow.
+        assert!(s.acquire(0.0).is_none());
+        s.set_rate(a.id, 1000.0);
         let b = s.acquire(0.0).unwrap();
         assert_eq!(a.end(), b.start);
-        assert_eq!(b.end(), 100);
-        assert!(b.start >= 40 && b.start <= 80);
+        assert_eq!((b.start, b.end()), (30, 50));
         assert_eq!(s.steals(), 1);
     }
 
