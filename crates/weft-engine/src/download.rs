@@ -655,6 +655,8 @@ struct RouteRun {
     /// When the last failure was counted, and how much the route had delivered then.
     failed_at: Option<(Instant, u64)>,
     next_spawn: Instant,
+    /// Until when the user's speed limit counts as what holds this route back.
+    limited_until: Instant,
     error: Option<String>,
 }
 
@@ -721,6 +723,7 @@ pub async fn download(
     let opts = RequestOptions {
         user_agent: cfg.user_agent.clone(),
         headers: spec.headers.clone(),
+        secrets_for: Some(primary_url.clone()),
         connect_timeout: cfg.connect_timeout,
         header_timeout: cfg.header_timeout,
     };
@@ -960,6 +963,7 @@ pub async fn download(
                     failures: 0,
                     failed_at: None,
                     next_spawn: now,
+                    limited_until: now,
                     error: None,
                 });
             }
@@ -1151,7 +1155,9 @@ pub async fn download(
         for id in &order {
             let Some(run) = runs.get_mut(id) else { continue };
             let bytes = run.shared.bytes.load(Ordering::Relaxed);
-            if bytes > run.last_bytes {
+            // Only bytes that arrived after the last failure show the route works again;
+            // the ones counted here for the first time may have come just before it.
+            if bytes > run.last_bytes && run.failed_at.is_none_or(|(_, at)| bytes > at) {
                 run.failures = 0;
                 run.error = None;
             }
@@ -1165,8 +1171,13 @@ pub async fn download(
             // Under a speed limit set by the user more connections cannot add anything;
             // they would only cut the file into more and slower pieces.
             let own_limit = run.shared.route.limiter.rate();
-            let limited = (own_limit > 0 && rate >= own_limit as f64 * 0.7)
-                || (cfg.limiter.rate() > 0 && total_rate >= cfg.limiter.rate() as f64 * 0.7);
+            let at_limit = (own_limit > 0 && rate.max(run.meter.sample()) >= own_limit as f64 * 0.6)
+                || (cfg.limiter.rate() > 0 && total_rate >= cfg.limiter.rate() as f64 * 0.6);
+            if at_limit {
+                // One reading below the limit does not mean the limit stopped mattering.
+                run.limited_until = now + Duration::from_secs(3);
+            }
+            let limited = now < run.limited_until;
             run.tuner.tick(now, rate, run.meter.sample(), active, budget == 0 || limited);
             let target = run.tuner.target();
             run.shared.target.store(target, Ordering::Release);

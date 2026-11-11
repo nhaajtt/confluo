@@ -56,6 +56,9 @@ pub struct RequestOptions {
     pub connect_timeout: Duration,
     /// Time allowed between sending a request and receiving response headers.
     pub header_timeout: Duration,
+    /// The link the user gave. Cookies and credentials go only to that site, whatever
+    /// address later requests are sent to. `None` means the URL of each call.
+    pub secrets_for: Option<Url>,
 }
 
 impl Default for RequestOptions {
@@ -65,6 +68,7 @@ impl Default for RequestOptions {
             headers: Vec::new(),
             connect_timeout: Duration::from_secs(10),
             header_timeout: Duration::from_secs(20),
+            secrets_for: None,
         }
     }
 }
@@ -86,6 +90,37 @@ impl Origin {
         let host = url.host_str().ok_or_else(|| Error::InvalidUrl("missing host".into()))?.to_string();
         let port = url.port_or_known_default().unwrap_or(if https { 443 } else { 80 });
         Ok(Self { https, host, port })
+    }
+}
+
+impl Origin {
+    /// Whether secrets given for `home` may be sent here: the same host on the same
+    /// port (or its HTTPS port after an upgrade), and never from HTTPS down to HTTP.
+    fn may_carry_secrets_of(&self, home: &Origin) -> bool {
+        let same_port =
+            self.port == home.port || (!home.https && self.https && home.port == 80 && self.port == 443);
+        self.host.eq_ignore_ascii_case(&home.host) && same_port && (self.https || !home.https)
+    }
+}
+
+/// True for this computer and private or link-local addresses written as such.
+/// (A public name that resolves to a private address is not caught here.)
+pub fn is_local(url: &Url) -> bool {
+    match url.host() {
+        Some(url::Host::Ipv4(ip)) => {
+            ip.is_loopback() || ip.is_private() || ip.is_link_local() || ip.is_unspecified()
+        }
+        Some(url::Host::Ipv6(ip)) => {
+            ip.is_loopback()
+                || ip.is_unspecified()
+                || (ip.segments()[0] & 0xfe00) == 0xfc00
+                || (ip.segments()[0] & 0xffc0) == 0xfe80
+        }
+        Some(url::Host::Domain(d)) => {
+            let d = d.trim_end_matches('.').to_ascii_lowercase();
+            d == "localhost" || d.ends_with(".localhost")
+        }
+        None => false,
     }
 }
 
@@ -243,11 +278,12 @@ pub async fn get(
     opts: &RequestOptions,
     ask: &Ask<'_>,
 ) -> Result<Fetched> {
-    let first_host = url.host_str().map(str::to_owned);
+    let home = Origin::of(opts.secrets_for.as_ref().unwrap_or(url))?;
+    let started_local = is_local(url) || opts.secrets_for.as_ref().is_some_and(is_local);
     let mut url = url.clone();
     for _ in 0..=MAX_REDIRECTS {
         let origin = Origin::of(&url)?;
-        let send_secrets = url.host_str().map(str::to_owned) == first_host;
+        let send_secrets = origin.may_carry_secrets_of(&home);
         let mut attempt = 0;
         let response = loop {
             attempt += 1;
@@ -286,6 +322,11 @@ pub async fn get(
             && let Some(loc) = response.headers().get(header::LOCATION).and_then(|v| v.to_str().ok())
         {
             let next = url.join(loc).map_err(|e| Error::InvalidUrl(e.to_string()))?;
+            if is_local(&next) && !started_local {
+                // A public site must not be able to point the downloader at this
+                // computer or at devices on the local network.
+                return Err(Error::Protocol("refused a redirect to a local address".into()));
+            }
             // The redirect body is not read, so this connection cannot be reused.
             *slot = None;
             url = next;
@@ -327,4 +368,51 @@ pub fn content_length(resp: &Response<Incoming>) -> Option<u64> {
 
 pub fn header_str<'a>(resp: &'a Response<Incoming>, name: &str) -> Option<&'a str> {
     resp.headers().get(name)?.to_str().ok()
+}
+
+#[cfg(test)]
+mod secret_tests {
+    use super::*;
+
+    fn origin(u: &str) -> Origin {
+        Origin::of(&Url::parse(u).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn secrets_stay_with_the_site_they_were_given_for() {
+        let home = origin("https://files.example.com/a");
+        assert!(origin("https://files.example.com/b?x=1").may_carry_secrets_of(&home));
+        assert!(origin("https://FILES.example.com/b").may_carry_secrets_of(&home));
+        // Another site, the same site without TLS, another port on the same host.
+        assert!(!origin("https://cdn.example.net/a").may_carry_secrets_of(&home));
+        assert!(!origin("http://files.example.com/a").may_carry_secrets_of(&home));
+        assert!(!origin("https://files.example.com:8443/a").may_carry_secrets_of(&home));
+        // An upgrade from plain HTTP to HTTPS on the same host keeps them.
+        let plain = origin("http://files.example.com/a");
+        assert!(origin("https://files.example.com/a").may_carry_secrets_of(&plain));
+        assert!(!origin("https://files.example.com:8443/a").may_carry_secrets_of(&plain));
+    }
+
+    #[test]
+    fn local_addresses_are_recognised() {
+        for u in [
+            "http://127.0.0.1/x",
+            "http://localhost:8080/x",
+            "http://printer.localhost/x",
+            "http://192.168.1.1/x",
+            "http://10.0.0.7/x",
+            "http://172.16.4.4/x",
+            "http://169.254.169.254/latest/meta-data",
+            "http://[::1]/x",
+            "http://[fd00::1]/x",
+            "http://[fe80::1]/x",
+        ] {
+            assert!(is_local(&Url::parse(u).unwrap()), "{u}");
+        }
+        for u in
+            ["https://example.com/x", "http://8.8.8.8/x", "http://172.32.0.1/x", "http://[2001:db8::1]/x"]
+        {
+            assert!(!is_local(&Url::parse(u).unwrap()), "{u}");
+        }
+    }
 }

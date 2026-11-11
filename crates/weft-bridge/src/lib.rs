@@ -23,6 +23,7 @@ use hyper::header::{self, HeaderValue};
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
+use ring::hmac;
 use ring::rand::{SecureRandom, SystemRandom};
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpListener;
@@ -71,8 +72,40 @@ pub fn load_or_create_token(dir: &Path) -> io::Result<String> {
     let token: String = raw.iter().map(|b| format!("{b:02x}")).collect();
     std::fs::create_dir_all(dir)?;
     std::fs::write(&file, &token)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600))?;
+    }
     Ok(token)
 }
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn unhex(text: &str) -> Option<Vec<u8>> {
+    let t = text.trim();
+    if t.len() % 2 != 0 || !t.is_ascii() {
+        return None;
+    }
+    (0..t.len()).step_by(2).map(|i| u8::from_str_radix(&t[i..i + 2], 16).ok()).collect()
+}
+
+/// `HMAC-SHA256(pairing code, message)` in hex: proof of knowing the code that
+/// does not reveal it.
+pub fn proof(token: &str, message: &[u8]) -> String {
+    hex(hmac::sign(&hmac::Key::new(hmac::HMAC_SHA256, token.as_bytes()), message).as_ref())
+}
+
+fn proof_matches(token: &str, message: &[u8], given_hex: &str) -> bool {
+    unhex(given_hex).is_some_and(|sig| {
+        hmac::verify(&hmac::Key::new(hmac::HMAC_SHA256, token.as_bytes()), message, &sig).is_ok()
+    })
+}
+
+/// How far an offer's timestamp may be from this computer's clock.
+const MAX_SKEW_MS: u64 = 120_000;
 
 fn same(a: &[u8], b: &[u8]) -> bool {
     // Constant time, so the token cannot be guessed one character at a time.
@@ -121,9 +154,21 @@ async fn handle(
         return Ok(fail(StatusCode::FORBIDDEN, "origin not allowed", None));
     }
     let origin = origin.as_deref();
-    let paired = header(header::AUTHORIZATION)
-        .and_then(|v| v.strip_prefix("Bearer ").map(str::to_owned))
+    let authorization = header(header::AUTHORIZATION);
+    let paired = authorization
+        .as_deref()
+        .and_then(|v| v.strip_prefix("Bearer "))
         .is_some_and(|t| same(t.trim().as_bytes(), token.as_bytes()));
+    // The extension never sends the code itself: it signs each offer with it.
+    let signature = authorization.as_deref().and_then(|v| v.strip_prefix("Weft-HMAC ")).map(str::to_owned);
+    // `?nonce=<hex>`: the caller asks this program to prove that it knows the code,
+    // so that a stranger listening on this port cannot pass for Weft.
+    let nonce = req
+        .uri()
+        .query()
+        .and_then(|q| q.split('&').find_map(|kv| kv.strip_prefix("nonce=")))
+        .filter(|n| (16..=128).contains(&n.len()) && n.bytes().all(|b| b.is_ascii_hexdigit()))
+        .map(str::to_owned);
 
     match (req.method().clone(), req.uri().path()) {
         (Method::OPTIONS, _) => {
@@ -139,11 +184,16 @@ async fn handle(
         }
         (Method::GET, "/v1/ping") => Ok(reply(
             StatusCode::OK,
-            serde_json::json!({ "app": "weft", "version": env!("CARGO_PKG_VERSION"), "paired": paired }),
+            serde_json::json!({
+                "app": "weft",
+                "version": env!("CARGO_PKG_VERSION"),
+                "paired": paired,
+                "proof": nonce.map(|n| proof(&token, n.as_bytes())),
+            }),
             origin,
         )),
         (Method::POST, "/v1/offer") => {
-            if !paired {
+            if !paired && signature.is_none() {
                 return Ok(fail(StatusCode::UNAUTHORIZED, "not paired", origin));
             }
             let json = header(header::CONTENT_TYPE)
@@ -154,7 +204,24 @@ async fn handle(
             let Ok(body) = Limited::new(req.into_body(), MAX_BODY).collect().await else {
                 return Ok(fail(StatusCode::PAYLOAD_TOO_LARGE, "request too large", origin));
             };
-            let Ok(offer) = serde_json::from_slice::<Offer>(&body.to_bytes()) else {
+            let body = body.to_bytes();
+            if let Some(sig) = &signature {
+                if !proof_matches(&token, &body, sig) {
+                    return Ok(fail(StatusCode::UNAUTHORIZED, "not paired", origin));
+                }
+                // A signed offer names the moment it was made, so a copy of it
+                // cannot be sent again later.
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0, |d| d.as_millis() as u64);
+                let ts = serde_json::from_slice::<serde_json::Value>(&body)
+                    .ok()
+                    .and_then(|v| v.get("ts").and_then(serde_json::Value::as_u64));
+                if !ts.is_some_and(|ts| ts.abs_diff(now) <= MAX_SKEW_MS) {
+                    return Ok(fail(StatusCode::UNAUTHORIZED, "offer too old", origin));
+                }
+            }
+            let Ok(offer) = serde_json::from_slice::<Offer>(&body) else {
                 return Ok(fail(StatusCode::BAD_REQUEST, "not a valid offer", origin));
             };
             let scheme_ok =
@@ -253,6 +320,33 @@ mod tests {
         let auth = format!("Authorization: Bearer {token}\r\n");
         let ext = "Origin: chrome-extension://abcdefghijklmnop\r\n";
         let body = r#"{"url":"https://example.com/a.zip","file_name":"a.zip","cookie":"s=1"}"#;
+
+        // The extension's way in: the offer signed with the code, the code itself never sent.
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+        let signed = format!(r#"{{"url":"https://example.com/s.zip","ts":{now}}}"#);
+        let sig = format!("Authorization: Weft-HMAC {}\r\n", proof(&token, signed.as_bytes()));
+        let (code, text) = send(p, post(p, &host, &format!("{sig}{ext}"), &signed)).await;
+        assert_eq!(code, 200, "{text}");
+        // The same signature on a different body, a stale offer, and a wrong key: refused.
+        let other = signed.replace("s.zip", "t.zip");
+        assert_eq!(send(p, post(p, &host, &format!("{sig}{ext}"), &other)).await.0, 401);
+        let stale = r#"{"url":"https://example.com/s.zip","ts":1000}"#;
+        let stale_sig = format!("Authorization: Weft-HMAC {}\r\n", proof(&token, stale.as_bytes()));
+        assert_eq!(send(p, post(p, &host, &format!("{stale_sig}{ext}"), stale)).await.0, 401);
+        let forged = format!("Authorization: Weft-HMAC {}\r\n", proof("not the code", signed.as_bytes()));
+        assert_eq!(send(p, post(p, &host, &format!("{forged}{ext}"), &signed)).await.0, 401);
+        assert_eq!(seen.lock().unwrap().len(), 1);
+        seen.lock().unwrap().clear();
+        // Asked with a nonce, the bridge proves it knows the code without showing it.
+        let ask = format!(
+            "GET /v1/ping?nonce=00112233445566778899aabbccddeeff HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
+        );
+        let (code, text) = send(p, ask).await;
+        assert!(
+            code == 200
+                && text.contains(&proof(&token, b"00112233445566778899aabbccddeeff"))
+                && !text.contains(&token)
+        );
 
         // A paired extension: accepted.
         let (code, text) = send(p, post(p, &host, &format!("{auth}{ext}"), body)).await;

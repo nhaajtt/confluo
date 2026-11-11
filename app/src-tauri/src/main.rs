@@ -144,7 +144,9 @@ fn set_bridge_autostart(app: State<'_, App>, autostart: bool) {
 }
 
 fn finished_path(app: &App, id: u64) -> Option<PathBuf> {
-    app.manager.list().into_iter().find(|i| i.id == id).and_then(|i| i.path).filter(|p| p.exists())
+    let item = app.manager.list().into_iter().find(|i| i.id == id)?;
+    // The saved list is a file on disk; a path in it is only followed inside the download's own folder.
+    item.path.filter(|p| p.parent() == Some(item.dir.as_path()) && p.exists())
 }
 
 /// Shows a finished download in the file manager.

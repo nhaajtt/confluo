@@ -177,7 +177,7 @@ struct Shared {
     per_ip: Mutex<HashMap<IpAddr, Arc<Pacer>>>,
 }
 
-/// A running test server. Dropping it stops accepting connections.
+/// A running test server. Dropping it closes the listener and every open connection.
 pub struct Server {
     pub addr: SocketAddr,
     shared: Arc<Shared>,
@@ -203,12 +203,15 @@ impl Server {
         });
         let accept_shared = shared.clone();
         let task = tokio::spawn(async move {
+            // Connections live in this set, so stopping the server cuts every one of them.
+            let mut conns = tokio::task::JoinSet::new();
             loop {
                 let Ok((stream, peer)) = listener.accept().await else { continue };
+                while conns.try_join_next().is_some() {}
                 let _ = stream.set_nodelay(true);
                 let shared = accept_shared.clone();
                 shared.stats.connections.fetch_add(1, Ordering::Relaxed);
-                tokio::spawn(async move {
+                conns.spawn(async move {
                     let svc = service_fn(move |req| handle(shared.clone(), peer, req));
                     let _ = hyper::server::conn::http1::Builder::new()
                         .serve_connection(TokioIo::new(stream), svc)

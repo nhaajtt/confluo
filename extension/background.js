@@ -11,28 +11,48 @@ async function settings() {
   return api.storage.local.get({ token: "", capture: true, cookies: false });
 }
 
-async function call(path, init) {
+const text = new TextEncoder();
+
+function hex(bytes) {
+  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// HMAC-SHA256 with the pairing code as the key. The code itself never leaves the
+// browser: both sides only show each other what they can compute with it.
+async function sign(token, message) {
+  const key = await crypto.subtle.importKey("raw", text.encode(token), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return hex(await crypto.subtle.sign("HMAC", key, text.encode(message)));
+}
+
+// Looks for Weft on the three ports. A listener only counts as Weft's paired
+// bridge when it can sign a fresh random number with the pairing code, so
+// another program sitting on the port learns nothing and receives no downloads.
+async function find(token) {
   const order = knownPort ? [knownPort, ...PORTS.filter((p) => p !== knownPort)] : PORTS;
+  let unpaired = null;
   for (const port of order) {
     try {
-      const res = await fetch(`http://127.0.0.1:${port}${path}`, { ...init, signal: AbortSignal.timeout(1500) });
+      const nonce = hex(crypto.getRandomValues(new Uint8Array(16)));
+      const res = await fetch(`http://127.0.0.1:${port}/v1/ping?nonce=${nonce}`, { signal: AbortSignal.timeout(1500) });
       const body = await res.json().catch(() => ({}));
-      if (body.app === "weft" || path !== "/v1/ping") {
+      if (body.app !== "weft") continue;
+      if (token && body.proof === (await sign(token, nonce))) {
         knownPort = port;
-        return { ok: res.ok, status: res.status, body };
+        return { port, paired: true, version: body.version };
       }
+      unpaired ??= { port, paired: false, version: body.version };
     } catch {
       // Nothing listening on this port; try the next.
     }
   }
   knownPort = null;
-  return null;
+  return unpaired;
 }
 
 async function ping() {
   const { token } = await settings();
-  const r = await call("/v1/ping", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-  return r ? { found: true, paired: !!r.body.paired, version: r.body.version } : { found: false };
+  const r = await find(token);
+  return r ? { found: true, paired: r.paired, version: r.version } : { found: false };
 }
 
 async function cookieHeader(url) {
@@ -50,13 +70,20 @@ async function offer(url, extra = {}) {
   if (!/^https?:\/\//i.test(url)) return false;
   const { token } = await settings();
   if (!token) return false;
-  const body = { url, cookie: await cookieHeader(url), user_agent: navigator.userAgent, ...extra };
-  const r = await call("/v1/offer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-  });
-  return !!r?.ok;
+  const bridge = await find(token);
+  if (!bridge?.paired) return false;
+  const body = JSON.stringify({ url, cookie: await cookieHeader(url), user_agent: navigator.userAgent, ...extra, ts: Date.now() });
+  try {
+    const res = await fetch(`http://127.0.0.1:${bridge.port}/v1/offer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Weft-HMAC ${await sign(token, body)}` },
+      body,
+      signal: AbortSignal.timeout(3000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 api.runtime.onInstalled.addListener(() => {

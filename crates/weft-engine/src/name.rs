@@ -51,12 +51,15 @@ pub fn sanitize(raw: &str) -> String {
             c if c.is_control() => '_',
             c => c,
         })
+        // Invisible characters that reorder or hide text: "exe.pdf" must not be
+        // able to pass for a file that really ends in ".exe".
+        .filter(|c| !matches!(*c, '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{2069}' | '\u{feff}'))
         .collect();
     s = s.trim().trim_end_matches(['.', ' ']).trim_start_matches('.').trim().to_string();
     if s.is_empty() {
         return "download".to_string();
     }
-    let stem = s.split('.').next().unwrap_or("").to_ascii_uppercase();
+    let stem = s.split('.').next().unwrap_or("").trim_end_matches([' ', '.']).to_ascii_uppercase();
     if RESERVED.contains(&stem.as_str()) {
         s.insert(0, '_');
     }
@@ -72,6 +75,7 @@ pub fn sanitize(raw: &str) -> String {
             cut -= 1;
         }
         s.truncate(cut);
+        s.truncate(s.trim_end_matches(['.', ' ']).len());
         s.push_str(&ext);
     }
     s
@@ -101,6 +105,18 @@ pub fn part_path(dir: &Path, name: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hidden_and_reserved_names_are_defused() {
+        // A right-to-left override would show "invoice\u{202e}fdp.exe" as "invoiceexe.pdf".
+        assert_eq!(sanitize("invoice\u{202e}fdp.exe"), "invoicefdp.exe");
+        assert_eq!(sanitize("zero\u{200b}width.txt"), "zerowidth.txt");
+        assert_eq!(sanitize("CON .txt"), "_CON .txt");
+        assert_eq!(sanitize("nul"), "_nul");
+        let long = format!("{}. .txt", "a".repeat(300));
+        let cut = sanitize(&long);
+        assert!(cut.len() <= 200 && cut.ends_with(".txt") && !cut.contains(" .txt"), "{cut}");
+    }
 
     #[test]
     fn disposition() {

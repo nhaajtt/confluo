@@ -232,6 +232,7 @@ impl Manager {
                 ..Saved::default()
             });
         saved.settings.max_concurrent = saved.settings.max_concurrent.clamp(1, 16);
+        saved.settings.connections_per_network = saved.settings.connections_per_network.clamp(1, 64);
         let items = saved
             .items
             .into_iter()
@@ -420,7 +421,12 @@ impl Manager {
             } else {
                 let item = st.items.remove(pos);
                 removed = true;
-                if delete_file && let Some(p) = &item.rec.path {
+                // Only a file in the download's own folder is ever deleted, whatever
+                // the saved list claims.
+                if delete_file
+                    && let Some(p) = &item.rec.path
+                    && p.parent() == Some(item.rec.dir.as_path())
+                {
                     let _ = std::fs::remove_file(p);
                 }
                 // A paused or failed download leaves its partial file behind.
