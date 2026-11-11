@@ -90,6 +90,10 @@ impl Tuner {
     /// and `starved` whether fewer are open only because there is no more work.
     pub fn tick(&mut self, now: Instant, rate: f64, active: usize, starved: bool) {
         if self.ceiling < self.max && now.duration_since(self.ceiling_at) >= CEILING_RECOVERY {
+            // Try one more connection; if the server still refuses, the ceiling drops again.
+            if self.target == self.ceiling {
+                self.target += 1;
+            }
             self.ceiling += 1;
             self.ceiling_at = now;
         }

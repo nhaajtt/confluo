@@ -1,0 +1,56 @@
+[
+ {
+  "ok": true,
+  "file": "C:\\Users\\user\\AppData\\Local\\Temp\\weft-crash-bjw96a__\\weft-cli-0\\file",
+  "done_at_kill": 107754694,
+  "resume_seconds": 5.548459099998581,
+  "intact": true,
+  "refetched_mib": 20.554335594177246,
+  "subject": "weft-cli"
+ },
+ {
+  "ok": true,
+  "file": "C:\\Users\\user\\AppData\\Local\\Temp\\weft-crash-bjw96a__\\weft-cli-1\\file",
+  "done_at_kill": 106840064,
+  "resume_seconds": 5.793782199994894,
+  "intact": true,
+  "refetched_mib": 23.85062026977539,
+  "subject": "weft-cli"
+ },
+ {
+  "ok": true,
+  "file": "C:\\Users\\user\\AppData\\Local\\Temp\\weft-crash-bjw96a__\\weft-cli-2\\file",
+  "done_at_kill": 106954752,
+  "resume_seconds": 5.556830200002878,
+  "intact": true,
+  "refetched_mib": 23.071980476379395,
+  "subject": "weft-cli"
+ },
+ {
+  "ok": true,
+  "file": "C:\\Users\\user\\AppData\\Local\\Temp\\weft-crash-bjw96a__\\baseline-0\\file",
+  "done_at_kill": 104857600,
+  "resumed": true,
+  "intact": true,
+  "refetched_mib": 113.77382373809814,
+  "subject": "baseline"
+ },
+ {
+  "ok": true,
+  "file": "C:\\Users\\user\\AppData\\Local\\Temp\\weft-crash-bjw96a__\\baseline-1\\file",
+  "done_at_kill": 104857600,
+  "resumed": true,
+  "intact": true,
+  "refetched_mib": 113.14622020721436,
+  "subject": "baseline"
+ },
+ {
+  "ok": true,
+  "file": "C:\\Users\\user\\AppData\\Local\\Temp\\weft-crash-bjw96a__\\baseline-2\\file",
+  "done_at_kill": 104857600,
+  "resumed": true,
+  "intact": true,
+  "refetched_mib": 112.35455322265625,
+  "subject": "baseline"
+ }
+]
