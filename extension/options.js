@@ -1,4 +1,4 @@
-// Settings for the Weft extension. Nothing leaves the browser except to 127.0.0.1.
+// Settings for the Confluo extension. Nothing leaves the browser except to 127.0.0.1.
 const api = globalThis.browser ?? globalThis.chrome;
 const $ = (id) => document.getElementById(id);
 
@@ -10,9 +10,9 @@ function show(text, kind) {
 
 async function check() {
   const reply = await api.runtime.sendMessage({ type: "ping" });
-  if (!reply?.found) show("Weft is not running on this computer.", "bad");
-  else if (!reply.paired) show("Weft is running. The pairing code does not match.", "bad");
-  else show(`Connected to Weft ${reply.version}.`, "ok");
+  if (!reply?.found) show("Confluo is not running on this computer.", "bad");
+  else if (!reply.paired) show("Confluo is running. The pairing code does not match.", "bad");
+  else show(`Connected to Confluo ${reply.version}.`, "ok");
 }
 
 async function load() {

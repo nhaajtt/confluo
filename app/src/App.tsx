@@ -1,3 +1,4 @@
+import mark from "../app-icon.svg";
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { api, type Item, type Networks, type Settings } from "./api";
@@ -144,7 +145,7 @@ function CommandBar() {
       }}
     >
       <label class="prompt" for="cmd-input">
-        WEFT<span>&gt;</span>
+        CONFLUO<span>&gt;</span>
       </label>
       <input
         id="cmd-input"
@@ -602,7 +603,8 @@ export default function App() {
     <div class="app">
       <header class="top">
         <h1>
-          WEFT <span>DL-01</span>
+          <img src={mark} alt="" width="26" height="26" />
+          CONFLUO <span>DL-01</span>
         </h1>
         <p class="strap">MULTI-NETWORK DOWNLOADS · EVERY BYTE ACCOUNTED FOR</p>
         <div class="meters" aria-live="off">

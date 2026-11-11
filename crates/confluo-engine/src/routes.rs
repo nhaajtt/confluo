@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use tokio::sync::watch;
-use weft_net::{Interface, Medium};
+use confluo_net::{Interface, Medium};
 
 use crate::download::Route;
 use crate::limit::Limiter;
@@ -88,7 +88,7 @@ pub fn watch_routes(
     book: Arc<RouteBook>,
     selection: watch::Receiver<Selection>,
 ) -> watch::Receiver<Vec<Route>> {
-    let mut interfaces = weft_net::watch_changes();
+    let mut interfaces = confluo_net::watch_changes();
     let mut selection = selection;
     let initial = book.routes(&interfaces.borrow(), &selection.borrow());
     let (tx, rx) = watch::channel(initial);

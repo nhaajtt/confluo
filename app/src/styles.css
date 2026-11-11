@@ -1,4 +1,4 @@
-/* Weft. The same visual system as nhaajt.com and its product pages: a deep ground with
+/* Confluo. The same visual system as nhaajt.com and its product pages: a deep ground with
    colour far behind it, hairline borders, glass panels, pill controls, Geist for reading,
    Geist Mono for numbers and Departure Mono for labels. Neon yellow with neon pink is this
    app's own pair. */
@@ -18,7 +18,7 @@
   --tp: #ffffff;
   --ts: #dadbdf;
   --tt: #8d9196;
-  /* Two threads of different colour, for an app that weaves streams into one. */
+  /* Two currents of different colour, for an app where streams flow into one. */
   --ac: #e4ff3d;
   --ac2: #ff3fa4;
   --ac-soft: #f4ffa6;
@@ -196,6 +196,7 @@ input:focus-visible { outline-offset: 0; }
   align-items: center;
   gap: 10px;
 }
+.top h1 img { display: block; border-radius: 7px; }
 .top h1 span {
   font: 11px var(--mono);
   color: var(--ac2);

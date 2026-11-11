@@ -1,4 +1,4 @@
-//! `weft`: the download engine without a window. Used by scripts, tests and benchmarks.
+//! `confluo`: the download engine without a window. Used by scripts, tests and benchmarks.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -8,16 +8,16 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::watch;
 use url::Url;
-use weft_engine::limit::Limiter;
-use weft_engine::routes::{RouteBook, Selection, watch_routes};
-use weft_engine::{Checksum, Command, Config, Outcome, Route, Snapshot, Spec, download};
+use confluo_engine::limit::Limiter;
+use confluo_engine::routes::{RouteBook, Selection, watch_routes};
+use confluo_engine::{Checksum, Command, Config, Outcome, Route, Snapshot, Spec, download};
 
 const USAGE: &str = "\
-weft - multi-network download engine
+confluo - multi-network download engine
 
 USAGE:
-  weft get <url> [mirror-url...] [options]
-  weft interfaces
+  confluo get <url> [mirror-url...] [options]
+  confluo interfaces
 
 OPTIONS (get):
   -o, --dir <path>        folder to save into (default: current folder)
@@ -148,7 +148,7 @@ fn progress_line(s: &Snapshot) -> String {
 }
 
 fn interfaces() -> ExitCode {
-    match weft_net::list_interfaces() {
+    match confluo_net::list_interfaces() {
         Ok(list) => {
             for i in list {
                 println!(

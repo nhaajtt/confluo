@@ -31,8 +31,8 @@ def sha(path: Path) -> str:
     return h.hexdigest()
 
 
-def weft(url: str, out: Path) -> dict:
-    cmd = [str(bench.WEFT), "get", url, "-o", str(out), "--json", "--give-up", "120"]
+def confluo(url: str, out: Path) -> dict:
+    cmd = [str(bench.CONFLUO), "get", url, "-o", str(out), "--json", "--give-up", "120"]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     done_at_kill = 0
     for line in p.stdout:
@@ -74,16 +74,16 @@ def main():
     ap.add_argument("--runs", type=int, default=3)
     args = ap.parse_args()
     srv = bench.Server(args.ip, args.port, "200m", ["--rate-total", "20m"])
-    work = Path(tempfile.mkdtemp(prefix="weft-crash-"))
+    work = Path(tempfile.mkdtemp(prefix="confluo-crash-"))
     rows = []
     try:
         # The reference copy, fetched once without any interruption.
         ref_dir = work / "ref"
         ref_dir.mkdir()
-        ref = bench.run_weft_cli(srv.base + "/file", ref_dir)
+        ref = bench.run_confluo_cli(srv.base + "/file", ref_dir)
         assert ref["ok"], ref
         want = sha(next(ref_dir.iterdir()))
-        for name, fn in (("weft-cli", weft), ("baseline", baseline)):
+        for name, fn in (("confluo-cli", confluo), ("baseline", baseline)):
             for i in range(args.runs):
                 out = work / f"{name}-{i}"
                 out.mkdir()

@@ -1,10 +1,10 @@
 # Third-party software
 
-Weft is MIT licensed (see `LICENSE`). It is an independent implementation: no source
+Confluo is MIT licensed (see `LICENSE`). It is an independent implementation: no source
 code was copied from Baseline (MIT, Copyright (c) 2026 its author), which was studied
 as a reference and is used unmodified, from its own repository, as the benchmark baseline.
 
-Weft links the following components. Each keeps its own licence; the exact
+Confluo links the following components. Each keeps its own licence; the exact
 versions are pinned in `Cargo.lock` and `app/pnpm-lock.yaml`.
 
 | Component | Licence |

@@ -10,7 +10,7 @@
    "about": "one 20 MiB/s bottleneck shared by all connections",
    "size": "200m",
    "subjects": {
-    "weft-cli": {
+    "confluo-cli": {
      "summary": {
       "ok": 1,
       "runs": 1,
@@ -39,7 +39,7 @@
       }
      ]
     },
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 1,
       "runs": 1,

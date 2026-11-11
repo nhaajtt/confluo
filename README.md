@@ -1,13 +1,13 @@
-# Weft
+# Confluo
 
 A download manager that spreads one download over several connections and several
 network interfaces, survives crashes and bad servers, and tells you what is limiting
 the speed. Windows first; the engine also builds on Linux and macOS.
 
-Download and install command: **https://weft.nhaajt.com** · installers are also attached to the
-[releases](https://github.com/nhaajtt/weft/releases).
+Download and install command: **https://confluo.nhaajt.com** · installers are also attached to the
+[releases](https://github.com/nhaajtt/confluo/releases).
 
-Weft was built after studying [Baseline](https://github.com/example/baseline) (MIT). It is an
+Confluo was built after studying [Baseline](https://github.com/example/baseline) (MIT). It is an
 independent implementation in Rust with a Tauri shell, not a fork. Baseline is used, unmodified,
 as the baseline in the benchmarks below.
 
@@ -17,7 +17,7 @@ Needs Rust (stable, 1.88+), Node 22 and pnpm. On Windows the WebView2 runtime (p
 
 ```sh
 cargo test --workspace                 # engine, bridge and test-server tests
-cargo build --release -p weft-cli      # target/release/weft(.exe), the engine without a window
+cargo build --release -p confluo-cli      # target/release/confluo(.exe), the engine without a window
 
 cd app
 pnpm install
@@ -29,16 +29,16 @@ pnpm typecheck && pnpm lint
 Command line:
 
 ```sh
-weft get https://example.com/big.iso -o D:\Downloads
-weft get <link> <mirror-link> --checksum sha256:<hex>
-weft get <link> -i "Ethernet" -i "Wi-Fi"     # use exactly these interfaces
-weft interfaces
+confluo get https://example.com/big.iso -o D:\Downloads
+confluo get <link> <mirror-link> --checksum sha256:<hex>
+confluo get <link> -i "Ethernet" -i "Wi-Fi"     # use exactly these interfaces
+confluo interfaces
 ```
 
 Ctrl-C pauses; running the same command again continues.
 
 Browser extension: load the `extension/` folder as an unpacked extension, then paste the pairing
-code from Weft (Setup, Browser) into the extension.
+code from Confluo (Setup, Browser) into the extension.
 
 Download page: `node site/prepare.mjs [https://your.domain]` assembles `site/dist/` (the page, the
 installer, its SHA-256 and `install.ps1` with both filled in), ready to upload to any static host.
@@ -47,11 +47,11 @@ installer, its SHA-256 and `install.ps1` with both filled in), ready to upload t
 
 | Path | What it is |
 |---|---|
-| `crates/weft-net` | Interface discovery, sockets pinned to an interface, change notifications |
-| `crates/weft-engine` | Probe, scheduler, connection tuner, disk writer, journal, download list |
-| `crates/weft-bridge` | Loopback service the browser extension talks to |
-| `crates/weft-cli` | `weft` command |
-| `crates/weft-testsrv` | File server that misbehaves on purpose (caps, drops, stalls, no ranges, expiring links) |
+| `crates/confluo-net` | Interface discovery, sockets pinned to an interface, change notifications |
+| `crates/confluo-engine` | Probe, scheduler, connection tuner, disk writer, journal, download list |
+| `crates/confluo-bridge` | Loopback service the browser extension talks to |
+| `crates/confluo-cli` | `confluo` command |
+| `crates/confluo-testsrv` | File server that misbehaves on purpose (caps, drops, stalls, no ranges, expiring links) |
 | `app/` | Desktop app (Tauri 2, SolidJS) |
 | `extension/` | Browser extension (Manifest V3) |
 | `extension/test/` | Drives the unpacked extension in real Chromium and Firefox against the real app |
@@ -63,7 +63,7 @@ installer, its SHA-256 and `install.ps1` with both filled in), ready to upload t
 **Sockets are pinned to the interface, not to an address.** Windows uses `IP_UNICAST_IF`, Linux
 `SO_BINDTODEVICE`, macOS `IP_BOUND_IF`. Binding only the source address (what Baseline does on
 Windows and macOS, see its issue #65) leaves the routing table in charge, so with two default
-routes everything can leave through one adapter. Evidence here: a Weft connection pinned to an
+routes everything can leave through one adapter. Evidence here: a Confluo connection pinned to an
 adapter with no route to the server fails with "network unreachable" instead of quietly going out
 through another adapter.
 
@@ -130,7 +130,7 @@ routing and parallel flows.
 
 ## Benchmarks
 
-Machine: Windows 11, i9-14900KS, 32 GB. Both apps download from `weft-testsrv` on this machine's
+Machine: Windows 11, i9-14900KS, 32 GB. Both apps download from `confluo-testsrv` on this machine's
 LAN address, 7 runs each. Baseline is commit `2e44a2f`, built with its own `npm run build:unpack` and
 driven through its real window with Playwright. Reproduce with:
 
@@ -143,12 +143,12 @@ bench/.venv/Scripts/python bench/soak.py  --ip <same> --events 12
 Raw output is in `bench/results/` (`20261111-043403` is the run quoted here). Times are seconds,
 median with mean ± 95% confidence interval of the mean in brackets.
 
-| Scenario | Weft app | Baseline | Result |
+| Scenario | Confluo app | Baseline | Result |
 |---|---|---|---|
-| No limit, 1 GiB | 1.70 (1.67 ± 0.07) | 6.36 (6.31 ± 0.26) | Weft 3.7x faster |
-| Server caps each connection at 1 MiB/s, 200 MiB | 7.32 (7.32 ± 0.02) | 7.48 (7.50 ± 0.04) | Weft 2% faster |
-| Server allows 4 connections, 200 MiB | 25.54 (25.50 ± 0.21) | 26.11 (26.10 ± 0.03) | Weft 2% faster |
-| Server without Range support, 200 MiB | 5.18 (5.19 ± 0.02) | 5.29 (5.30 ± 0.03) | Weft 2% faster |
+| No limit, 1 GiB | 1.70 (1.67 ± 0.07) | 6.36 (6.31 ± 0.26) | Confluo 3.7x faster |
+| Server caps each connection at 1 MiB/s, 200 MiB | 7.32 (7.32 ± 0.02) | 7.48 (7.50 ± 0.04) | Confluo 2% faster |
+| Server allows 4 connections, 200 MiB | 25.54 (25.50 ± 0.21) | 26.11 (26.10 ± 0.03) | Confluo 2% faster |
+| Server without Range support, 200 MiB | 5.18 (5.19 ± 0.02) | 5.29 (5.30 ± 0.03) | Confluo 2% faster |
 | 150 ms before each response, 4 MiB/s per connection, 200 MiB | 3.72 (3.63 ± 0.13) | 3.62 (3.63 ± 0.03) | no difference shown |
 | One 20 MiB/s bottleneck, 200 MiB | 10.30 (10.30 ± 0.01) | 10.16 (10.14 ± 0.03) | **Baseline 1.4% faster** |
 
@@ -159,12 +159,12 @@ connection ceiling is tested again after one second instead of fifteen.
 
 What is still not a win:
 
-- **One shared bottleneck: Baseline is 1.4% (0.14 s) faster**, consistently. Weft spends about that
+- **One shared bottleneck: Baseline is 1.4% (0.14 s) faster**, consistently. Confluo spends about that
   long at the start finding out that 16 connections do no more than 8.
-- **Slow first byte: no difference can be claimed.** The means are equal; Weft's runs fall into two
+- **Slow first byte: no difference can be claimed.** The means are equal; Confluo's runs fall into two
   groups a quarter of a second apart (3.47 and 3.72 s) depending on which tick the tuner decides
   on, so its median is 3% worse and its best run 4% better.
-- **One of the 7 Weft-app runs with the 4-connection server did not finish within the harness's
+- **One of the 7 Confluo-app runs with the 4-connection server did not finish within the harness's
   15 minutes** and is not in the numbers above (the other six and all seven CLI runs are). It did
   not happen again in 16 further runs. A cause was found that fits and was fixed: on Windows the
   saved list could not be replaced while another program had it open (the harness reads it every
@@ -172,11 +172,11 @@ What is still not a win:
   written. Replacing a file now retries for up to two seconds (`disk::replace_file`, with a test
   that holds the file open). Because the failure could not be reproduced, it cannot be shown that
   this was the cause.
-- With `--rate-conn` the server sees up to 38 connections open for a moment although Weft never
+- With `--rate-conn` the server sees up to 38 connections open for a moment although Confluo never
   runs more than 32: a connection whose tail was handed to another one is closed mid-response and
   the server notices a little later.
 
-| Cost | Weft engine (CLI) | Weft app | Baseline |
+| Cost | Confluo engine (CLI) | Confluo app | Baseline |
 |---|---|---|---|
 | CPU time per download (range over scenarios) | 0.1 - 1.7 s | 2.0 - 3.5 s | 12.8 - 60.1 s |
 | Peak memory, whole process tree | 11 - 48 MiB | 358 - 395 MiB | 596 - 700 MiB |
@@ -184,7 +184,7 @@ What is still not a win:
 | Installer | | 2.3 MiB | 258 MiB |
 | Launch to ready (installed copy, 3 starts) | | 0.5 - 0.8 s | not measured the same way |
 
-| Hard kill at 50% of a 200 MiB download, then relaunch | Weft | Baseline |
+| Hard kill at 50% of a 200 MiB download, then relaunch | Confluo | Baseline |
 |---|---|---|
 | File intact afterwards (3 of 3 runs) | yes | yes |
 | Bytes fetched again | 6 - 16 MiB | 112 - 113 MiB |
@@ -204,7 +204,7 @@ second and four data updates a second). Frame times were not measured.
 Not measured, and therefore not claimed:
 
 - **Real gain from two internet connections.** This machine has one uplink. With emulated links
-  (`weft get --emulate-links 4m,2m`), Weft reached 83-95% of the sum of the links on a 60 MiB file.
+  (`confluo get --emulate-links 4m,2m`), Confluo reached 83-95% of the sum of the links on a 60 MiB file.
   That shows the scheduler; it does not show two real networks. Nothing can make two interfaces
   behind the same router faster than one.
 - Runs longer than five minutes, and files larger than 8 GiB.
@@ -242,7 +242,7 @@ Checked outside `cargo test`, by hand-run scripts in this round:
 - **Install command** (`site/install.ps1`): run for real against the page served locally; it
   installed and started the app, and refused an installer that had one byte appended.
 - **Linux** (Ubuntu under WSL2, kernel 6.6): `cargo clippy -D warnings` clean, the test suite
-  passed three times in a row, and the release `weft` binary downloaded 500 MiB over 32 connections
+  passed three times in a row, and the release `confluo` binary downloaded 500 MiB over 32 connections
   from the test server.
 
 ## Known gaps
@@ -253,7 +253,7 @@ Checked outside `cargo test`, by hand-run scripts in this round:
   has not run yet either. The Linux check was under WSL2, not on a machine with several real
   network interfaces, and the desktop app has only ever been built for Windows.
 - The installer is not code-signed, so Windows SmartScreen will warn. It installs the app only;
-  the `weft` command-line program is not in it.
+  the `confluo` command-line program is not in it.
 - The browser extension is not in any store; it is loaded unpacked.
 - The resume journal is not authenticated. Someone who can already write to your download folder
   could mark bytes of a partial file as done. A checksum, when there is one, still catches it.

@@ -68,7 +68,7 @@ pub fn exists_for(dir: &Path, url: &str) -> bool {
     entries
         .filter_map(|e| e.ok())
         .map(|e| e.path())
-        .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(".weft-journal")))
+        .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(".confluo-journal")))
         .filter_map(|p| load(&p))
         .any(|j| j.urls.first().map(String::as_str) == Some(url) && !j.done.is_empty())
 }
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn round_trip_and_clamp() {
         let dir = tempfile::tempdir().unwrap();
-        let p = dir.path().join("x.weft-journal");
+        let p = dir.path().join("x.confluo-journal");
         let mut j = Journal {
             version: VERSION,
             urls: vec!["http://a/b".into()],

@@ -1,5 +1,5 @@
 [package]
-name = "weft-engine"
+name = "confluo-engine"
 version = "0.1.0"
 edition.workspace = true
 
@@ -22,15 +22,15 @@ tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring
 tracing = "0.1.44"
 url = "2.5.8"
 webpki-roots = "1.0.12"
-weft-net = { version = "0.1.0", path = "../weft-net" }
+confluo-net = { version = "0.1.0", path = "../confluo-net" }
 
 [dev-dependencies]
 proptest = "1.12.0"
 sha2 = "0.11.1"
 tempfile = "3.27.0"
 url = "2.5.8"
-weft-net = { path = "../weft-net" }
-weft-testsrv = { path = "../weft-testsrv" }
+confluo-net = { path = "../confluo-net" }
+confluo-testsrv = { path = "../confluo-testsrv" }
 
 [target."cfg(windows)".dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_System_IO", "Win32_System_Ioctl", "Win32_Foundation", "Win32_Storage_FileSystem", "Win32_Security_Cryptography"] }

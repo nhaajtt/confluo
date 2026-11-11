@@ -71,7 +71,7 @@ impl DiskWriter {
         let error = Arc::new(Mutex::new(None));
         let (t_stats, t_done, t_error) = (stats.clone(), done.clone(), error.clone());
         std::thread::Builder::new()
-            .name("weft-disk".into())
+            .name("confluo-disk".into())
             .spawn(move || {
                 while let Some(cmd) = rx.blocking_recv() {
                     match cmd {

@@ -1,8 +1,8 @@
-// Hands downloads from the browser to Weft on this computer.
+// Hands downloads from the browser to Confluo on this computer.
 //
 // The only network destination is http://127.0.0.1 on one of three fixed ports.
-// A download is taken away from the browser only after Weft has accepted it;
-// if Weft is not running or not paired, the browser simply downloads as usual.
+// A download is taken away from the browser only after Confluo has accepted it;
+// if Confluo is not running or not paired, the browser simply downloads as usual.
 const api = globalThis.browser ?? globalThis.chrome;
 const PORTS = [47610, 47611, 47612];
 let knownPort = null;
@@ -24,7 +24,7 @@ async function sign(token, message) {
   return hex(await crypto.subtle.sign("HMAC", key, text.encode(message)));
 }
 
-// Looks for Weft on the three ports. A listener only counts as Weft's paired
+// Looks for Confluo on the three ports. A listener only counts as Confluo's paired
 // bridge when it can sign a fresh random number with the pairing code, so
 // another program sitting on the port learns nothing and receives no downloads.
 async function find(token) {
@@ -35,7 +35,7 @@ async function find(token) {
       const nonce = hex(crypto.getRandomValues(new Uint8Array(16)));
       const res = await fetch(`http://127.0.0.1:${port}/v1/ping?nonce=${nonce}`, { signal: AbortSignal.timeout(1500) });
       const body = await res.json().catch(() => ({}));
-      if (body.app !== "weft") continue;
+      if (body.app !== "confluo") continue;
       if (token && body.proof === (await sign(token, nonce))) {
         knownPort = port;
         return { port, paired: true, version: body.version };
@@ -76,7 +76,7 @@ async function offer(url, extra = {}) {
   try {
     const res = await fetch(`http://127.0.0.1:${bridge.port}/v1/offer`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Weft-HMAC ${await sign(token, body)}` },
+      headers: { "Content-Type": "application/json", Authorization: `Confluo-HMAC ${await sign(token, body)}` },
       body,
       signal: AbortSignal.timeout(3000),
     });
@@ -87,11 +87,11 @@ async function offer(url, extra = {}) {
 }
 
 api.runtime.onInstalled.addListener(() => {
-  api.contextMenus.create({ id: "weft-link", title: "Download with Weft", contexts: ["link"] });
+  api.contextMenus.create({ id: "confluo-link", title: "Download with Confluo", contexts: ["link"] });
 });
 
 api.contextMenus.onClicked.addListener(async (info) => {
-  if (info.menuItemId === "weft-link" && info.linkUrl) {
+  if (info.menuItemId === "confluo-link" && info.linkUrl) {
     await offer(info.linkUrl, { referrer: info.pageUrl });
   }
 });

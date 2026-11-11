@@ -125,9 +125,9 @@ export function onEvents(handlers: {
   resync: () => void;
 }): Promise<UnlistenFn[]> {
   return Promise.all([
-    listen<Item>("weft://item", (e) => handlers.item(e.payload)),
-    listen<number>("weft://removed", (e) => handlers.removed(e.payload)),
-    listen<Settings>("weft://settings", (e) => handlers.settings(e.payload)),
-    listen("weft://resync", () => handlers.resync()),
+    listen<Item>("confluo://item", (e) => handlers.item(e.payload)),
+    listen<number>("confluo://removed", (e) => handlers.removed(e.payload)),
+    listen<Settings>("confluo://settings", (e) => handlers.settings(e.payload)),
+    listen("confluo://resync", () => handlers.resync()),
   ]);
 }

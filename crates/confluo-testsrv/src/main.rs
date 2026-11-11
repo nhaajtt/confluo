@@ -3,10 +3,10 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use weft_testsrv::{Behavior, Server};
+use confluo_testsrv::{Behavior, Server};
 
 const USAGE: &str = "\
-weft-testsrv - a file server with configurable limits
+confluo-testsrv - a file server with configurable limits
 
   --bind <addr:port>     address to listen on (default 127.0.0.1:8700); repeat for several
   --size <bytes>         file size, accepts k/m/g suffix (default 256m)

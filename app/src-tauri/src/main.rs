@@ -1,4 +1,4 @@
-//! The Weft desktop app: a window on top of the download engine.
+//! The Confluo desktop app: a window on top of the download engine.
 //!
 //! The window can only call the commands below. It never names a file path to
 //! open or delete; it names a download by id and the app looks the path up.
@@ -11,8 +11,8 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager as _, State};
-use weft_bridge::{Bridge, Offer};
-use weft_engine::manager::{Event, ItemView, Manager, NewDownload, Settings};
+use confluo_bridge::{Bridge, Offer};
+use confluo_engine::manager::{Event, ItemView, Manager, NewDownload, Settings};
 
 struct App {
     manager: Manager,
@@ -102,10 +102,10 @@ fn set_settings(app: State<'_, App>, settings: Settings) -> Result<(), String> {
 
 #[tauri::command]
 fn interfaces() -> Vec<InterfaceView> {
-    weft_net::list_interfaces()
+    confluo_net::list_interfaces()
         .unwrap_or_default()
         .into_iter()
-        .filter(|i| i.medium != weft_net::Medium::Loopback)
+        .filter(|i| i.medium != confluo_net::Medium::Loopback)
         .map(|i| InterfaceView {
             name: i.name,
             label: i.label,
@@ -199,17 +199,17 @@ fn forward_events(handle: AppHandle, manager: &Manager) {
         loop {
             match events.recv().await {
                 Ok(Event::Item(item)) => {
-                    let _ = handle.emit("weft://item", *item);
+                    let _ = handle.emit("confluo://item", *item);
                 }
                 Ok(Event::Removed(id)) => {
-                    let _ = handle.emit("weft://removed", id);
+                    let _ = handle.emit("confluo://removed", id);
                 }
                 Ok(Event::Settings(s)) => {
-                    let _ = handle.emit("weft://settings", *s);
+                    let _ = handle.emit("confluo://settings", *s);
                 }
                 // The window fell behind; it re-reads the whole list.
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                    let _ = handle.emit("weft://resync", ());
+                    let _ = handle.emit("confluo://resync", ());
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
             }
@@ -227,14 +227,14 @@ fn main() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            // WEFT_STATE_DIR keeps test and benchmark runs away from the real list.
-            let state_dir = match std::env::var_os("WEFT_STATE_DIR").map(PathBuf::from) {
+            // CONFLUO_STATE_DIR keeps test and benchmark runs away from the real list.
+            let state_dir = match std::env::var_os("CONFLUO_STATE_DIR").map(PathBuf::from) {
                 Some(dir) if dir.is_absolute() => dir,
                 _ => app.path().app_data_dir()?,
             };
             let downloads = app.path().download_dir().unwrap_or_else(|_| state_dir.join("downloads"));
             std::fs::create_dir_all(&state_dir)?;
-            let token = weft_bridge::load_or_create_token(&state_dir)?;
+            let token = confluo_bridge::load_or_create_token(&state_dir)?;
             let autostart = Arc::new(AtomicBool::new(
                 std::fs::read_to_string(state_dir.join("bridge-autostart")).is_ok_and(|s| s.trim() == "1"),
             ));
@@ -245,7 +245,7 @@ fn main() {
                     m.add(offer_to_download(offer, !auto.load(Ordering::Relaxed)))
                 });
                 // The bridge is optional: without it the app still works, the extension does not.
-                let bridge = weft_bridge::serve(token.clone(), &weft_bridge::PORTS, on_offer).await.ok();
+                let bridge = confluo_bridge::serve(token.clone(), &confluo_bridge::PORTS, on_offer).await.ok();
                 Ok::<_, std::io::Error>((manager, bridge))
             })?;
             forward_events(app.handle().clone(), &manager);
@@ -269,5 +269,5 @@ fn main() {
             reveal
         ])
         .run(tauri::generate_context!())
-        .expect("failed to start Weft");
+        .expect("failed to start Confluo");
 }

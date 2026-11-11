@@ -10,7 +10,7 @@
    "about": "local server, no limit: engine and disk overhead",
    "size": "1g",
    "subjects": {
-    "weft-cli": {
+    "confluo-cli": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -61,7 +61,7 @@
       }
      ]
     },
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -169,7 +169,7 @@
    "about": "server caps each connection at 1 MiB/s",
    "size": "200m",
    "subjects": {
-    "weft-cli": {
+    "confluo-cli": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -220,7 +220,7 @@
       }
      ]
     },
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -328,7 +328,7 @@
    "about": "one 20 MiB/s bottleneck shared by all connections",
    "size": "200m",
    "subjects": {
-    "weft-cli": {
+    "confluo-cli": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -379,7 +379,7 @@
       }
      ]
     },
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -487,7 +487,7 @@
    "about": "server without Range support",
    "size": "200m",
    "subjects": {
-    "weft-cli": {
+    "confluo-cli": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -538,7 +538,7 @@
       }
      ]
     },
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -646,7 +646,7 @@
    "about": "server allows 4 connections, 2 MiB/s each",
    "size": "200m",
    "subjects": {
-    "weft-cli": {
+    "confluo-cli": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -697,7 +697,7 @@
       }
      ]
     },
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -805,7 +805,7 @@
    "about": "150 ms before every response, 4 MiB/s per connection",
    "size": "200m",
    "subjects": {
-    "weft-cli": {
+    "confluo-cli": {
      "summary": {
       "ok": 3,
       "runs": 3,
@@ -856,7 +856,7 @@
       }
      ]
     },
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 3,
       "runs": 3,

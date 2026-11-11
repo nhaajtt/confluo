@@ -160,9 +160,9 @@ async fn handle(
         .and_then(|v| v.strip_prefix("Bearer "))
         .is_some_and(|t| same(t.trim().as_bytes(), token.as_bytes()));
     // The extension never sends the code itself: it signs each offer with it.
-    let signature = authorization.as_deref().and_then(|v| v.strip_prefix("Weft-HMAC ")).map(str::to_owned);
+    let signature = authorization.as_deref().and_then(|v| v.strip_prefix("Confluo-HMAC ")).map(str::to_owned);
     // `?nonce=<hex>`: the caller asks this program to prove that it knows the code,
-    // so that a stranger listening on this port cannot pass for Weft.
+    // so that a stranger listening on this port cannot pass for Confluo.
     let nonce = req
         .uri()
         .query()
@@ -185,7 +185,7 @@ async fn handle(
         (Method::GET, "/v1/ping") => Ok(reply(
             StatusCode::OK,
             serde_json::json!({
-                "app": "weft",
+                "app": "confluo",
                 "version": env!("CARGO_PKG_VERSION"),
                 "paired": paired,
                 "proof": nonce.map(|n| proof(&token, n.as_bytes())),
@@ -324,16 +324,16 @@ mod tests {
         // The extension's way in: the offer signed with the code, the code itself never sent.
         let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
         let signed = format!(r#"{{"url":"https://example.com/s.zip","ts":{now}}}"#);
-        let sig = format!("Authorization: Weft-HMAC {}\r\n", proof(&token, signed.as_bytes()));
+        let sig = format!("Authorization: Confluo-HMAC {}\r\n", proof(&token, signed.as_bytes()));
         let (code, text) = send(p, post(p, &host, &format!("{sig}{ext}"), &signed)).await;
         assert_eq!(code, 200, "{text}");
         // The same signature on a different body, a stale offer, and a wrong key: refused.
         let other = signed.replace("s.zip", "t.zip");
         assert_eq!(send(p, post(p, &host, &format!("{sig}{ext}"), &other)).await.0, 401);
         let stale = r#"{"url":"https://example.com/s.zip","ts":1000}"#;
-        let stale_sig = format!("Authorization: Weft-HMAC {}\r\n", proof(&token, stale.as_bytes()));
+        let stale_sig = format!("Authorization: Confluo-HMAC {}\r\n", proof(&token, stale.as_bytes()));
         assert_eq!(send(p, post(p, &host, &format!("{stale_sig}{ext}"), stale)).await.0, 401);
-        let forged = format!("Authorization: Weft-HMAC {}\r\n", proof("not the code", signed.as_bytes()));
+        let forged = format!("Authorization: Confluo-HMAC {}\r\n", proof("not the code", signed.as_bytes()));
         assert_eq!(send(p, post(p, &host, &format!("{forged}{ext}"), &signed)).await.0, 401);
         assert_eq!(seen.lock().unwrap().len(), 1);
         seen.lock().unwrap().clear();

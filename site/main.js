@@ -45,8 +45,8 @@ function splitWords(el) {
 
 // --- English / Tiếng Việt: elements keep their Vietnamese text in data-vi
 const TITLES = {
-  en: "Weft: every network you have, woven into one download",
-  vi: "Weft: mọi đường mạng bạn có, dệt thành một lần tải",
+  en: "Confluo: every network you have, flowing into one download",
+  vi: "Confluo: mọi đường mạng bạn có, chảy về một lần tải",
 };
 const nodes = [...document.querySelectorAll("[data-vi]")];
 for (const n of nodes) n.dataset.en = n.innerHTML;
@@ -110,7 +110,7 @@ tickClock();
 setInterval(tickClock, 1000);
 
 // --- copy the install command; phones send the page to a PC instead
-const PAGE = "https://weft.nhaajt.com";
+const PAGE = "https://confluo.nhaajt.com";
 async function copyText(btn, text) {
   const vi = document.documentElement.lang === "vi";
   try {
@@ -124,9 +124,9 @@ async function copyText(btn, text) {
 }
 async function shareLink(btn) {
   const vi = document.documentElement.lang === "vi";
-  const text = vi ? "Weft: tải file qua mọi mạng cùng lúc. Cài trên máy tính Windows:" : "Weft: one download over every network. Install it on a Windows PC:";
+  const text = vi ? "Confluo: tải file qua mọi mạng cùng lúc. Cài trên máy tính Windows:" : "Confluo: one download over every network. Install it on a Windows PC:";
   try {
-    if (navigator.share) return await navigator.share({ title: "Weft", text, url: PAGE });
+    if (navigator.share) return await navigator.share({ title: "Confluo", text, url: PAGE });
   } catch {
     return;
   }
@@ -153,7 +153,7 @@ const T0 = 2024;
 const YEARS = 6;
 const PX = 150;
 const BARS = [
-  { from: 2026.84, row: 0, cls: "is-current", en: ["Weft 0.1", "Windows · 2026"], vi: ["Weft 0.1", "Windows · 2026"] },
+  { from: 2026.84, row: 0, cls: "is-current", en: ["Confluo 0.1", "Windows · 2026"], vi: ["Confluo 0.1", "Windows · 2026"] },
   { from: 2026.86, row: 1, cls: "", en: ["Browser hand-off", "Chrome · Edge · Firefox"], vi: ["Nhận tải từ trình duyệt", "Chrome · Edge · Firefox"] },
   { from: 2026.87, row: 2, cls: "", en: ["One-line install", "PowerShell"], vi: ["Cài bằng một dòng lệnh", "PowerShell"] },
   { from: 2027.05, row: 3, cls: "is-future", en: ["macOS and Linux app", "planned"], vi: ["App cho macOS và Linux", "dự kiến"] },
@@ -227,8 +227,8 @@ const JUMPS = [
   ["#private", "Privacy", "Riêng tư"],
   ["#faq", "FAQ", "FAQ"],
   ["#install", "Install", "Cài đặt"],
-  ["download/Weft-setup.exe", "Download .exe", "Tải file .exe"],
-  ["https://github.com/nhaajtt/weft", "Source on GitHub", "Mã nguồn trên GitHub"],
+  ["download/Confluo-setup.exe", "Download .exe", "Tải file .exe"],
+  ["https://github.com/nhaajtt/confluo", "Source on GitHub", "Mã nguồn trên GitHub"],
 ];
 const jump = document.getElementById("jump");
 const jumpIn = document.getElementById("jumpIn");

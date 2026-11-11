@@ -14,7 +14,7 @@ use serde::Serialize;
 use tokio::sync::watch;
 use tokio::task::{AbortHandle, Id, JoinSet};
 use url::Url;
-use weft_net::BindSpec;
+use confluo_net::BindSpec;
 
 use crate::disk::{self, DiskWriter};
 use crate::error::{Error, Result};

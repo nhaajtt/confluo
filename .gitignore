@@ -2,8 +2,8 @@
 /ref
 node_modules
 dist
-*.weft
-*.weft-journal
+*.confluo
+*.confluo-journal
 /bench/tmp
 __pycache__/
 /site/dist

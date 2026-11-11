@@ -42,7 +42,7 @@ def main():
     ap.add_argument("--seed", type=int, default=1)
     args = ap.parse_args()
     rng = random.Random(args.seed)
-    work = Path(tempfile.mkdtemp(prefix="weft-soak-"))
+    work = Path(tempfile.mkdtemp(prefix="confluo-soak-"))
     ref_dir, out = work / "ref", work / "out"
     ref_dir.mkdir()
     out.mkdir()
@@ -51,12 +51,12 @@ def main():
     sent = 0
     log = []
     try:
-        ref = bench.run_weft_cli(url, ref_dir)
+        ref = bench.run_confluo_cli(url, ref_dir)
         assert ref["ok"], ref
         want = sha(next(ref_dir.iterdir()))
         srv.close()
         srv = bench.Server(args.ip, args.port, SIZE, SERVER_FLAGS)
-        cmd = [str(bench.WEFT), "get", url, "-o", str(out), "--json", "--give-up", "120"]
+        cmd = [str(bench.CONFLUO), "get", url, "-o", str(out), "--json", "--give-up", "120"]
         t0 = time.perf_counter()
         events = 0
         result = None
@@ -106,7 +106,7 @@ def main():
         sent += srv.stats()["body_bytes"]
         ok = result.get("result") == "completed"
         intact = ok and sha(Path(result["path"])) == want
-        leftovers = [f.name for f in out.iterdir() if ".weft" in f.name]
+        leftovers = [f.name for f in out.iterdir() if ".confluo" in f.name]
         summary = {
             "completed": ok,
             "intact": intact,

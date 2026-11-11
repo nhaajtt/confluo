@@ -1,13 +1,13 @@
 [package]
-name = "weft-app"
-description = "Weft download manager"
+name = "confluo-app"
+description = "Confluo download manager"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
 [[bin]]
-name = "weft-app"
+name = "confluo-app"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -20,9 +20,9 @@ tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["sync", "rt"] }
-weft-engine = { path = "../../crates/weft-engine" }
-weft-bridge = { path = "../../crates/weft-bridge" }
-weft-net = { path = "../../crates/weft-net" }
+confluo-engine = { path = "../../crates/confluo-engine" }
+confluo-bridge = { path = "../../crates/confluo-bridge" }
+confluo-net = { path = "../../crates/confluo-net" }
 
 [lints]
 workspace = true

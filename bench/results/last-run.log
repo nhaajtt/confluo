@@ -1,17 +1,17 @@
-unlimited            weft-cli  run 1: 1.86s cpu 2.3s rss 49 MiB req 41
-unlimited            weft-cli  run 2: 1.66s cpu 2.1s rss 47 MiB req 42
-unlimited            weft-cli  run 3: 1.73s cpu 1.7s rss 49 MiB req 42
-unlimited            weft-cli  run 4: 1.44s cpu 1.5s rss 48 MiB req 38
-unlimited            weft-cli  run 5: 1.53s cpu 1.6s rss 48 MiB req 44
-unlimited            weft-cli  run 6: 1.70s cpu 2.3s rss 48 MiB req 41
-unlimited            weft-cli  run 7: 1.46s cpu 1.7s rss 47 MiB req 42
-unlimited            weft-app  run 1: 1.70s cpu 3.5s rss 395 MiB req 42
-unlimited            weft-app  run 2: 1.51s cpu 3.2s rss 392 MiB req 42
-unlimited            weft-app  run 3: 1.70s cpu 3.7s rss 396 MiB req 41
-unlimited            weft-app  run 4: 1.70s cpu 3.5s rss 395 MiB req 43
-unlimited            weft-app  run 5: 1.72s cpu 3.2s rss 394 MiB req 44
-unlimited            weft-app  run 6: 1.68s cpu 3.5s rss 396 MiB req 42
-unlimited            weft-app  run 7: 1.67s cpu 3.2s rss 395 MiB req 44
+unlimited            confluo-cli  run 1: 1.86s cpu 2.3s rss 49 MiB req 41
+unlimited            confluo-cli  run 2: 1.66s cpu 2.1s rss 47 MiB req 42
+unlimited            confluo-cli  run 3: 1.73s cpu 1.7s rss 49 MiB req 42
+unlimited            confluo-cli  run 4: 1.44s cpu 1.5s rss 48 MiB req 38
+unlimited            confluo-cli  run 5: 1.53s cpu 1.6s rss 48 MiB req 44
+unlimited            confluo-cli  run 6: 1.70s cpu 2.3s rss 48 MiB req 41
+unlimited            confluo-cli  run 7: 1.46s cpu 1.7s rss 47 MiB req 42
+unlimited            confluo-app  run 1: 1.70s cpu 3.5s rss 395 MiB req 42
+unlimited            confluo-app  run 2: 1.51s cpu 3.2s rss 392 MiB req 42
+unlimited            confluo-app  run 3: 1.70s cpu 3.7s rss 396 MiB req 41
+unlimited            confluo-app  run 4: 1.70s cpu 3.5s rss 395 MiB req 43
+unlimited            confluo-app  run 5: 1.72s cpu 3.2s rss 394 MiB req 44
+unlimited            confluo-app  run 6: 1.68s cpu 3.5s rss 396 MiB req 42
+unlimited            confluo-app  run 7: 1.67s cpu 3.2s rss 395 MiB req 44
 unlimited            baseline     run 1: 6.70s cpu 25.4s rss 661 MiB req 202
 unlimited            baseline     run 2: 5.94s cpu 23.3s rss 653 MiB req 202
 Exception in thread Thread-44 (watch_stderr):
@@ -31,20 +31,20 @@ unlimited            baseline     run 4: 6.54s cpu 24.7s rss 662 MiB req 202
 unlimited            baseline     run 5: 6.18s cpu 23.5s rss 661 MiB req 201
 unlimited            baseline     run 6: 6.01s cpu 22.0s rss 667 MiB req 202
 unlimited            baseline     run 7: 6.43s cpu 22.8s rss 660 MiB req 202
-per-connection-cap   weft-cli  run 1: 7.30s cpu 1.6s rss 23 MiB req 80
-per-connection-cap   weft-cli  run 2: 7.29s cpu 0.6s rss 23 MiB req 82
-per-connection-cap   weft-cli  run 3: 7.29s cpu 0.3s rss 23 MiB req 80
-per-connection-cap   weft-cli  run 4: 7.30s cpu 0.4s rss 24 MiB req 83
-per-connection-cap   weft-cli  run 5: 7.29s cpu 0.9s rss 23 MiB req 80
-per-connection-cap   weft-cli  run 6: 7.30s cpu 0.7s rss 23 MiB req 82
-per-connection-cap   weft-cli  run 7: 7.32s cpu 0.5s rss 23 MiB req 86
-per-connection-cap   weft-app  run 1: 7.32s cpu 2.5s rss 368 MiB req 84
-per-connection-cap   weft-app  run 2: 7.33s cpu 1.8s rss 370 MiB req 83
-per-connection-cap   weft-app  run 3: 7.31s cpu 2.5s rss 371 MiB req 80
-per-connection-cap   weft-app  run 4: 7.35s cpu 2.6s rss 369 MiB req 85
-per-connection-cap   weft-app  run 5: 7.29s cpu 2.5s rss 368 MiB req 83
-per-connection-cap   weft-app  run 6: 7.32s cpu 2.0s rss 373 MiB req 85
-per-connection-cap   weft-app  run 7: 7.31s cpu 1.9s rss 369 MiB req 82
+per-connection-cap   confluo-cli  run 1: 7.30s cpu 1.6s rss 23 MiB req 80
+per-connection-cap   confluo-cli  run 2: 7.29s cpu 0.6s rss 23 MiB req 82
+per-connection-cap   confluo-cli  run 3: 7.29s cpu 0.3s rss 23 MiB req 80
+per-connection-cap   confluo-cli  run 4: 7.30s cpu 0.4s rss 24 MiB req 83
+per-connection-cap   confluo-cli  run 5: 7.29s cpu 0.9s rss 23 MiB req 80
+per-connection-cap   confluo-cli  run 6: 7.30s cpu 0.7s rss 23 MiB req 82
+per-connection-cap   confluo-cli  run 7: 7.32s cpu 0.5s rss 23 MiB req 86
+per-connection-cap   confluo-app  run 1: 7.32s cpu 2.5s rss 368 MiB req 84
+per-connection-cap   confluo-app  run 2: 7.33s cpu 1.8s rss 370 MiB req 83
+per-connection-cap   confluo-app  run 3: 7.31s cpu 2.5s rss 371 MiB req 80
+per-connection-cap   confluo-app  run 4: 7.35s cpu 2.6s rss 369 MiB req 85
+per-connection-cap   confluo-app  run 5: 7.29s cpu 2.5s rss 368 MiB req 83
+per-connection-cap   confluo-app  run 6: 7.32s cpu 2.0s rss 373 MiB req 85
+per-connection-cap   confluo-app  run 7: 7.31s cpu 1.9s rss 369 MiB req 82
 per-connection-cap   baseline     run 1: 7.48s cpu 23.0s rss 682 MiB req 210
 per-connection-cap   baseline     run 2: 7.46s cpu 24.2s rss 695 MiB req 206
 per-connection-cap   baseline     run 3: 7.52s cpu 21.9s rss 694 MiB req 205
@@ -52,20 +52,20 @@ per-connection-cap   baseline     run 4: 7.45s cpu 21.7s rss 691 MiB req 208
 per-connection-cap   baseline     run 5: 7.55s cpu 24.6s rss 688 MiB req 204
 per-connection-cap   baseline     run 6: 7.54s cpu 22.9s rss 687 MiB req 207
 per-connection-cap   baseline     run 7: 7.47s cpu 22.8s rss 693 MiB req 204
-link-cap             weft-cli  run 1: 10.27s cpu 0.2s rss 19 MiB req 32
-link-cap             weft-cli  run 2: 10.31s cpu 0.2s rss 19 MiB req 32
-link-cap             weft-cli  run 3: 10.28s cpu 0.3s rss 18 MiB req 34
-link-cap             weft-cli  run 4: 10.29s cpu 0.6s rss 19 MiB req 37
-link-cap             weft-cli  run 5: 10.29s cpu 0.9s rss 18 MiB req 35
-link-cap             weft-cli  run 6: 10.29s cpu 0.9s rss 18 MiB req 29
-link-cap             weft-cli  run 7: 10.27s cpu 0.2s rss 18 MiB req 33
-link-cap             weft-app  run 1: 10.29s cpu 2.7s rss 364 MiB req 32
-link-cap             weft-app  run 2: 10.30s cpu 2.1s rss 363 MiB req 33
-link-cap             weft-app  run 3: 10.31s cpu 2.2s rss 366 MiB req 37
-link-cap             weft-app  run 4: 10.29s cpu 1.9s rss 363 MiB req 32
-link-cap             weft-app  run 5: 10.30s cpu 1.9s rss 366 MiB req 32
-link-cap             weft-app  run 6: 10.32s cpu 2.7s rss 366 MiB req 31
-link-cap             weft-app  run 7: 10.30s cpu 2.2s rss 363 MiB req 32
+link-cap             confluo-cli  run 1: 10.27s cpu 0.2s rss 19 MiB req 32
+link-cap             confluo-cli  run 2: 10.31s cpu 0.2s rss 19 MiB req 32
+link-cap             confluo-cli  run 3: 10.28s cpu 0.3s rss 18 MiB req 34
+link-cap             confluo-cli  run 4: 10.29s cpu 0.6s rss 19 MiB req 37
+link-cap             confluo-cli  run 5: 10.29s cpu 0.9s rss 18 MiB req 35
+link-cap             confluo-cli  run 6: 10.29s cpu 0.9s rss 18 MiB req 29
+link-cap             confluo-cli  run 7: 10.27s cpu 0.2s rss 18 MiB req 33
+link-cap             confluo-app  run 1: 10.29s cpu 2.7s rss 364 MiB req 32
+link-cap             confluo-app  run 2: 10.30s cpu 2.1s rss 363 MiB req 33
+link-cap             confluo-app  run 3: 10.31s cpu 2.2s rss 366 MiB req 37
+link-cap             confluo-app  run 4: 10.29s cpu 1.9s rss 363 MiB req 32
+link-cap             confluo-app  run 5: 10.30s cpu 1.9s rss 366 MiB req 32
+link-cap             confluo-app  run 6: 10.32s cpu 2.7s rss 366 MiB req 31
+link-cap             confluo-app  run 7: 10.30s cpu 2.2s rss 363 MiB req 32
 link-cap             baseline     run 1: 10.19s cpu 30.5s rss 690 MiB req 204
 link-cap             baseline     run 2: 10.17s cpu 30.4s rss 700 MiB req 204
 link-cap             baseline     run 3: 10.14s cpu 30.9s rss 685 MiB req 203
@@ -73,20 +73,20 @@ link-cap             baseline     run 4: 10.16s cpu 30.5s rss 685 MiB req 202
 link-cap             baseline     run 5: 10.09s cpu 30.1s rss 688 MiB req 203
 link-cap             baseline     run 6: 10.16s cpu 30.7s rss 697 MiB req 204
 link-cap             baseline     run 7: 10.09s cpu 29.2s rss 692 MiB req 203
-no-range             weft-cli  run 1: 5.18s cpu 0.7s rss 11 MiB req 1
-no-range             weft-cli  run 2: 5.17s cpu 0.2s rss 12 MiB req 1
-no-range             weft-cli  run 3: 5.17s cpu 0.3s rss 11 MiB req 1
-no-range             weft-cli  run 4: 5.17s cpu 0.1s rss 11 MiB req 1
-no-range             weft-cli  run 5: 5.17s cpu 0.3s rss 11 MiB req 1
-no-range             weft-cli  run 6: 5.15s cpu 0.5s rss 12 MiB req 1
-no-range             weft-cli  run 7: 5.17s cpu 0.6s rss 11 MiB req 1
-no-range             weft-app  run 1: 5.19s cpu 1.5s rss 359 MiB req 1
-no-range             weft-app  run 2: 5.18s cpu 2.2s rss 356 MiB req 1
-no-range             weft-app  run 3: 5.17s cpu 2.0s rss 359 MiB req 1
-no-range             weft-app  run 4: 5.20s cpu 2.0s rss 358 MiB req 1
-no-range             weft-app  run 5: 5.21s cpu 1.6s rss 356 MiB req 1
-no-range             weft-app  run 6: 5.18s cpu 2.3s rss 359 MiB req 1
-no-range             weft-app  run 7: 5.18s cpu 2.1s rss 358 MiB req 1
+no-range             confluo-cli  run 1: 5.18s cpu 0.7s rss 11 MiB req 1
+no-range             confluo-cli  run 2: 5.17s cpu 0.2s rss 12 MiB req 1
+no-range             confluo-cli  run 3: 5.17s cpu 0.3s rss 11 MiB req 1
+no-range             confluo-cli  run 4: 5.17s cpu 0.1s rss 11 MiB req 1
+no-range             confluo-cli  run 5: 5.17s cpu 0.3s rss 11 MiB req 1
+no-range             confluo-cli  run 6: 5.15s cpu 0.5s rss 12 MiB req 1
+no-range             confluo-cli  run 7: 5.17s cpu 0.6s rss 11 MiB req 1
+no-range             confluo-app  run 1: 5.19s cpu 1.5s rss 359 MiB req 1
+no-range             confluo-app  run 2: 5.18s cpu 2.2s rss 356 MiB req 1
+no-range             confluo-app  run 3: 5.17s cpu 2.0s rss 359 MiB req 1
+no-range             confluo-app  run 4: 5.20s cpu 2.0s rss 358 MiB req 1
+no-range             confluo-app  run 5: 5.21s cpu 1.6s rss 356 MiB req 1
+no-range             confluo-app  run 6: 5.18s cpu 2.3s rss 359 MiB req 1
+no-range             confluo-app  run 7: 5.18s cpu 2.1s rss 358 MiB req 1
 no-range             baseline     run 1: 5.29s cpu 13.3s rss 603 MiB req 2
 no-range             baseline     run 2: 5.30s cpu 15.0s rss 596 MiB req 2
 no-range             baseline     run 3: 5.35s cpu 14.3s rss 592 MiB req 2
@@ -94,20 +94,20 @@ no-range             baseline     run 4: 5.27s cpu 13.9s rss 596 MiB req 2
 no-range             baseline     run 5: 5.35s cpu 13.9s rss 597 MiB req 2
 no-range             baseline     run 6: 5.28s cpu 14.1s rss 596 MiB req 2
 no-range             baseline     run 7: 5.26s cpu 14.1s rss 596 MiB req 2
-busy-server          weft-cli  run 1: 25.52s cpu 0.8s rss 12 MiB req 26
-busy-server          weft-cli  run 2: 25.52s cpu 0.4s rss 12 MiB req 25
-busy-server          weft-cli  run 3: 25.52s cpu 0.6s rss 12 MiB req 25
-busy-server          weft-cli  run 4: 26.03s cpu 0.5s rss 12 MiB req 26
-busy-server          weft-cli  run 5: 25.53s cpu 0.7s rss 12 MiB req 25
-busy-server          weft-cli  run 6: 25.76s cpu 0.6s rss 12 MiB req 25
-busy-server          weft-cli  run 7: 25.53s cpu 1.1s rss 12 MiB req 25
-busy-server          weft-app  run 1: 25.29s cpu 2.3s rss 360 MiB req 23
-busy-server          weft-app  run 2: 25.55s cpu 2.3s rss 358 MiB req 29
-busy-server          weft-app  run 3: 25.28s cpu 2.2s rss 358 MiB req 29
-busy-server          weft-app  run 4: 25.80s cpu 2.5s rss 357 MiB req 27
-busy-server          weft-app  run 5: FAILED timed out
-busy-server          weft-app  run 6: 25.53s cpu 2.5s rss 358 MiB req 25
-busy-server          weft-app  run 7: 25.54s cpu 2.2s rss 360 MiB req 28
+busy-server          confluo-cli  run 1: 25.52s cpu 0.8s rss 12 MiB req 26
+busy-server          confluo-cli  run 2: 25.52s cpu 0.4s rss 12 MiB req 25
+busy-server          confluo-cli  run 3: 25.52s cpu 0.6s rss 12 MiB req 25
+busy-server          confluo-cli  run 4: 26.03s cpu 0.5s rss 12 MiB req 26
+busy-server          confluo-cli  run 5: 25.53s cpu 0.7s rss 12 MiB req 25
+busy-server          confluo-cli  run 6: 25.76s cpu 0.6s rss 12 MiB req 25
+busy-server          confluo-cli  run 7: 25.53s cpu 1.1s rss 12 MiB req 25
+busy-server          confluo-app  run 1: 25.29s cpu 2.3s rss 360 MiB req 23
+busy-server          confluo-app  run 2: 25.55s cpu 2.3s rss 358 MiB req 29
+busy-server          confluo-app  run 3: 25.28s cpu 2.2s rss 358 MiB req 29
+busy-server          confluo-app  run 4: 25.80s cpu 2.5s rss 357 MiB req 27
+busy-server          confluo-app  run 5: FAILED timed out
+busy-server          confluo-app  run 6: 25.53s cpu 2.5s rss 358 MiB req 25
+busy-server          confluo-app  run 7: 25.54s cpu 2.2s rss 360 MiB req 28
 busy-server          baseline     run 1: 26.11s cpu 60.1s rss 679 MiB req 199
 busy-server          baseline     run 2: 26.13s cpu 59.0s rss 677 MiB req 199
 busy-server          baseline     run 3: 26.12s cpu 59.0s rss 679 MiB req 199
@@ -115,20 +115,20 @@ busy-server          baseline     run 4: 26.07s cpu 61.4s rss 686 MiB req 199
 busy-server          baseline     run 5: 26.07s cpu 60.2s rss 685 MiB req 199
 busy-server          baseline     run 6: 26.05s cpu 59.6s rss 684 MiB req 199
 busy-server          baseline     run 7: 26.12s cpu 61.1s rss 687 MiB req 199
-slow-first-byte      weft-cli  run 1: 3.70s cpu 0.1s rss 28 MiB req 53
-slow-first-byte      weft-cli  run 2: 3.45s cpu 0.9s rss 28 MiB req 55
-slow-first-byte      weft-cli  run 3: 3.73s cpu 0.0s rss 27 MiB req 53
-slow-first-byte      weft-cli  run 4: 3.70s cpu 0.9s rss 28 MiB req 53
-slow-first-byte      weft-cli  run 5: 3.45s cpu 0.5s rss 28 MiB req 53
-slow-first-byte      weft-cli  run 6: 3.71s cpu 0.1s rss 28 MiB req 55
-slow-first-byte      weft-cli  run 7: 3.44s cpu 0.1s rss 26 MiB req 54
-slow-first-byte      weft-app  run 1: 3.49s cpu 2.8s rss 372 MiB req 53
-slow-first-byte      weft-app  run 2: 3.72s cpu 3.8s rss 376 MiB req 54
-slow-first-byte      weft-app  run 3: 3.75s cpu 1.7s rss 378 MiB req 55
-slow-first-byte      weft-app  run 4: 3.47s cpu 1.7s rss 372 MiB req 56
-slow-first-byte      weft-app  run 5: 3.73s cpu 2.1s rss 373 MiB req 53
-slow-first-byte      weft-app  run 6: 3.48s cpu 1.6s rss 374 MiB req 54
-slow-first-byte      weft-app  run 7: 3.73s cpu 2.1s rss 373 MiB req 54
+slow-first-byte      confluo-cli  run 1: 3.70s cpu 0.1s rss 28 MiB req 53
+slow-first-byte      confluo-cli  run 2: 3.45s cpu 0.9s rss 28 MiB req 55
+slow-first-byte      confluo-cli  run 3: 3.73s cpu 0.0s rss 27 MiB req 53
+slow-first-byte      confluo-cli  run 4: 3.70s cpu 0.9s rss 28 MiB req 53
+slow-first-byte      confluo-cli  run 5: 3.45s cpu 0.5s rss 28 MiB req 53
+slow-first-byte      confluo-cli  run 6: 3.71s cpu 0.1s rss 28 MiB req 55
+slow-first-byte      confluo-cli  run 7: 3.44s cpu 0.1s rss 26 MiB req 54
+slow-first-byte      confluo-app  run 1: 3.49s cpu 2.8s rss 372 MiB req 53
+slow-first-byte      confluo-app  run 2: 3.72s cpu 3.8s rss 376 MiB req 54
+slow-first-byte      confluo-app  run 3: 3.75s cpu 1.7s rss 378 MiB req 55
+slow-first-byte      confluo-app  run 4: 3.47s cpu 1.7s rss 372 MiB req 56
+slow-first-byte      confluo-app  run 5: 3.73s cpu 2.1s rss 373 MiB req 53
+slow-first-byte      confluo-app  run 6: 3.48s cpu 1.6s rss 374 MiB req 54
+slow-first-byte      confluo-app  run 7: 3.73s cpu 2.1s rss 373 MiB req 54
 slow-first-byte      baseline     run 1: 3.62s cpu 12.3s rss 684 MiB req 210
 slow-first-byte      baseline     run 2: 3.63s cpu 13.4s rss 713 MiB req 205
 slow-first-byte      baseline     run 3: 3.70s cpu 12.8s rss 700 MiB req 205
@@ -140,21 +140,21 @@ Benchmark 2026-11-11 03:55:23 (median of 7 runs)
 
 | Scenario | Subject | Median (s) | Mean ± 95% CI (s) | Range | MiB/s | CPU (s) | Peak RAM (MiB) | Requests | Peak conns | Extra bytes sent |
 |---|---|---|---|---|---|---|---|---|---|---|
-| unlimited | weft-cli | 1.66 | 1.63 ± 0.14 | 1.44-1.86 | 616.8 | 1.7 | 48 | 42 | 8 | 0.4% |
-| unlimited | weft-app | 1.70 | 1.67 ± 0.07 | 1.51-1.72 | 603.7 | 3.5 | 395 | 42 | 8 | 0.5% |
+| unlimited | confluo-cli | 1.66 | 1.63 ± 0.14 | 1.44-1.86 | 616.8 | 1.7 | 48 | 42 | 8 | 0.4% |
+| unlimited | confluo-app | 1.70 | 1.67 ± 0.07 | 1.51-1.72 | 603.7 | 3.5 | 395 | 42 | 8 | 0.5% |
 | unlimited | baseline | 6.36 | 6.31 ± 0.26 | 5.94-6.70 | 160.9 | 23.5 | 661 | 202 | 8 | 0.7% |
-| per-connection-cap | weft-cli | 7.30 | 7.30 ± 0.01 | 7.29-7.32 | 27.4 | 0.6 | 23 | 82 | 38 | 0.1% |
-| per-connection-cap | weft-app | 7.32 | 7.32 ± 0.02 | 7.29-7.35 | 27.3 | 2.5 | 369 | 83 | 38 | 0.1% |
+| per-connection-cap | confluo-cli | 7.30 | 7.30 ± 0.01 | 7.29-7.32 | 27.4 | 0.6 | 23 | 82 | 38 | 0.1% |
+| per-connection-cap | confluo-app | 7.32 | 7.32 ± 0.02 | 7.29-7.35 | 27.3 | 2.5 | 369 | 83 | 38 | 0.1% |
 | per-connection-cap | baseline | 7.48 | 7.50 ± 0.04 | 7.45-7.55 | 26.7 | 22.9 | 691 | 206 | 32 | 0.0% |
-| link-cap | weft-cli | 10.29 | 10.29 ± 0.01 | 10.27-10.31 | 19.4 | 0.3 | 18 | 33 | 16 | 0.4% |
-| link-cap | weft-app | 10.30 | 10.30 ± 0.01 | 10.29-10.32 | 19.4 | 2.2 | 364 | 32 | 16 | 0.4% |
+| link-cap | confluo-cli | 10.29 | 10.29 ± 0.01 | 10.27-10.31 | 19.4 | 0.3 | 18 | 33 | 16 | 0.4% |
+| link-cap | confluo-app | 10.30 | 10.30 ± 0.01 | 10.29-10.32 | 19.4 | 2.2 | 364 | 32 | 16 | 0.4% |
 | link-cap | baseline | 10.16 | 10.14 ± 0.03 | 10.09-10.19 | 19.7 | 30.5 | 690 | 203 | 32 | 0.1% |
-| no-range | weft-cli | 5.17 | 5.17 ± 0.01 | 5.15-5.18 | 38.7 | 0.3 | 11 | 1 | 1 | 0.0% |
-| no-range | weft-app | 5.18 | 5.19 ± 0.02 | 5.17-5.21 | 38.6 | 2.0 | 358 | 1 | 1 | 0.0% |
+| no-range | confluo-cli | 5.17 | 5.17 ± 0.01 | 5.15-5.18 | 38.7 | 0.3 | 11 | 1 | 1 | 0.0% |
+| no-range | confluo-app | 5.18 | 5.19 ± 0.02 | 5.17-5.21 | 38.6 | 2.0 | 358 | 1 | 1 | 0.0% |
 | no-range | baseline | 5.29 | 5.30 ± 0.03 | 5.26-5.35 | 37.8 | 14.1 | 596 | 2 | 1 | 0.3% |
-| busy-server | weft-cli | 25.53 | 25.63 ± 0.18 | 25.52-26.03 | 7.8 | 0.6 | 12 | 25 | 6 | 0.0% |
-| busy-server | weft-app | 25.54 | 25.50 ± 0.21 | 25.28-25.80 | 7.8 | 2.3 | 358 | 28 | 5 | 0.0% |
+| busy-server | confluo-cli | 25.53 | 25.63 ± 0.18 | 25.52-26.03 | 7.8 | 0.6 | 12 | 25 | 6 | 0.0% |
+| busy-server | confluo-app | 25.54 | 25.50 ± 0.21 | 25.28-25.80 | 7.8 | 2.3 | 358 | 28 | 5 | 0.0% |
 | busy-server | baseline | 26.11 | 26.10 ± 0.03 | 26.05-26.13 | 7.7 | 60.1 | 684 | 199 | 5 | 0.0% |
-| slow-first-byte | weft-cli | 3.70 | 3.60 ± 0.13 | 3.44-3.73 | 54.1 | 0.1 | 28 | 53 | 32 | 0.3% |
-| slow-first-byte | weft-app | 3.72 | 3.63 ± 0.13 | 3.47-3.75 | 53.7 | 2.1 | 373 | 54 | 32 | 0.4% |
+| slow-first-byte | confluo-cli | 3.70 | 3.60 ± 0.13 | 3.44-3.73 | 54.1 | 0.1 | 28 | 53 | 32 | 0.3% |
+| slow-first-byte | confluo-app | 3.72 | 3.63 ± 0.13 | 3.47-3.75 | 53.7 | 2.1 | 373 | 54 | 32 | 0.4% |
 | slow-first-byte | baseline | 3.62 | 3.63 ± 0.03 | 3.60-3.70 | 55.3 | 12.8 | 700 | 206 | 32 | 0.2% |

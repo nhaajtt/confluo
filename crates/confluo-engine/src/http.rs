@@ -21,7 +21,7 @@ use tokio_rustls::TlsConnector;
 use tokio_rustls::rustls::pki_types::ServerName;
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 use url::{Host, Url};
-use weft_net::BindSpec;
+use confluo_net::BindSpec;
 
 use crate::error::{Error, Result};
 
@@ -64,7 +64,7 @@ pub struct RequestOptions {
 impl Default for RequestOptions {
     fn default() -> Self {
         Self {
-            user_agent: concat!("Weft/", env!("CARGO_PKG_VERSION")).to_string(),
+            user_agent: concat!("Confluo/", env!("CARGO_PKG_VERSION")).to_string(),
             headers: Vec::new(),
             connect_timeout: Duration::from_secs(10),
             header_timeout: Duration::from_secs(20),
@@ -165,7 +165,7 @@ impl Conn {
     pub async fn open(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) -> Result<Self> {
         let origin = Origin::of(url)?;
         let addrs = resolve(url).await?;
-        let (tcp, remote) = weft_net::connect_any(bind, &addrs, opts.connect_timeout).await?;
+        let (tcp, remote) = confluo_net::connect_any(bind, &addrs, opts.connect_timeout).await?;
         let io: Box<dyn Io> = if origin.https {
             let name = ServerName::try_from(origin.host.trim_matches(['[', ']']).to_string())
                 .map_err(|e| Error::Tls(e.to_string()))?;

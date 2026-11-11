@@ -2,8 +2,8 @@
 
 use std::time::Duration;
 
-use weft_engine::manager::{Event, Manager, Networks, NewDownload, Settings, Status};
-use weft_testsrv::{Behavior, Server, content};
+use confluo_engine::manager::{Event, Manager, Networks, NewDownload, Settings, Status};
+use confluo_testsrv::{Behavior, Server, content};
 
 const MIB: u64 = 1 << 20;
 
@@ -98,8 +98,8 @@ async fn pause_resume_remove_and_restart() {
         m.remove(drop_me, true);
         wait_for(&m, "removal", |m| m.list().len() == 1).await;
         tokio::time::sleep(Duration::from_millis(100)).await;
-        assert!(!files.path().join("drop.bin.weft").exists(), "a removed download left its partial file");
-        assert!(files.path().join("keep.bin.weft").exists());
+        assert!(!files.path().join("drop.bin.confluo").exists(), "a removed download left its partial file");
+        assert!(files.path().join("keep.bin.confluo").exists());
     }
     // The saved list never holds the cookie in the clear.
     let saved = std::fs::read_to_string(state.path().join("downloads.json")).unwrap();

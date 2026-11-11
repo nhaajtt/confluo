@@ -10,10 +10,10 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::watch;
 use url::Url;
-use weft_engine::limit::Limiter;
-use weft_engine::manager::{Manager, Networks, NewDownload, Settings, Status};
-use weft_engine::{Command, Config, Outcome, Route, Snapshot, Spec, download};
-use weft_testsrv::{Behavior, Server, content, fill};
+use confluo_engine::limit::Limiter;
+use confluo_engine::manager::{Manager, Networks, NewDownload, Settings, Status};
+use confluo_engine::{Command, Config, Outcome, Route, Snapshot, Spec, download};
+use confluo_testsrv::{Behavior, Server, content, fill};
 
 const MIB: u64 = 1 << 20;
 
@@ -31,7 +31,7 @@ async fn run(
     spec: Spec,
     cfg: Config,
     routes: Vec<Route>,
-) -> (weft_engine::Result<Outcome>, Vec<(Instant, Snapshot)>) {
+) -> (confluo_engine::Result<Outcome>, Vec<(Instant, Snapshot)>) {
     let (_rtx, rrx) = watch::channel(routes);
     let (_ctx, crx) = watch::channel(Command::Run);
     let mut snaps = Vec::new();
@@ -197,7 +197,7 @@ async fn many_downloads_at_once_all_arrive_intact() {
         .unwrap()
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|n| n.contains(".weft"))
+        .filter(|n| n.contains(".confluo"))
         .collect();
     assert!(stray.is_empty(), "left behind: {stray:?}");
 }
@@ -240,7 +240,7 @@ async fn pause_resume_storm_keeps_the_file_exact() {
 async fn file_larger_than_4_gib_is_exact() {
     let size = (4 << 30) + 187 * MIB + 12_345;
     let srv = Server::local(Behavior { size, seed: 61, ..Default::default() }).await;
-    let dir = tempfile::tempdir_in(std::env::var("WEFT_TEST_DIR").unwrap_or_else(|_| ".".into())).unwrap();
+    let dir = tempfile::tempdir_in(std::env::var("CONFLUO_TEST_DIR").unwrap_or_else(|_| ".".into())).unwrap();
     let (result, _) = run(spec(dir.path(), &srv.url()), Config::default(), vec![Route::system()]).await;
     let Ok(Outcome::Completed { path, size: got }) = result else { panic!("{result:?}") };
     assert_eq!(got, size);

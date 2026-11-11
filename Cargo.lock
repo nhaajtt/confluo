@@ -555,6 +555,101 @@ dependencies = [
 ]
 
 [[package]]
+name = "confluo-app"
+version = "0.1.0"
+dependencies = [
+ "confluo-bridge",
+ "confluo-engine",
+ "confluo-net",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-single-instance",
+ "tokio",
+]
+
+[[package]]
+name = "confluo-bridge"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "ring",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "confluo-cli"
+version = "0.1.0"
+dependencies = [
+ "confluo-engine",
+ "confluo-net",
+ "serde_json",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "confluo-engine"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "bytes",
+ "confluo-net",
+ "confluo-testsrv",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "libc",
+ "md-5",
+ "percent-encoding",
+ "proptest",
+ "rustls",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2 0.11.1",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "url",
+ "webpki-roots",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "confluo-net"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "socket2",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "confluo-testsrv"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "tokio",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4765,101 +4860,6 @@ dependencies = [
  "thiserror 2.0.21",
  "windows",
  "windows-core",
-]
-
-[[package]]
-name = "weft-app"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-single-instance",
- "tokio",
- "weft-bridge",
- "weft-engine",
- "weft-net",
-]
-
-[[package]]
-name = "weft-bridge"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "http-body-util",
- "hyper",
- "hyper-util",
- "ring",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
-]
-
-[[package]]
-name = "weft-cli"
-version = "0.1.0"
-dependencies = [
- "serde_json",
- "tokio",
- "url",
- "weft-engine",
- "weft-net",
-]
-
-[[package]]
-name = "weft-engine"
-version = "0.1.0"
-dependencies = [
- "base64 0.23.1",
- "bytes",
- "http-body-util",
- "hyper",
- "hyper-util",
- "libc",
- "md-5",
- "percent-encoding",
- "proptest",
- "rustls",
- "serde",
- "serde_json",
- "sha1",
- "sha2 0.11.1",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tokio-rustls",
- "tracing",
- "url",
- "webpki-roots",
- "weft-net",
- "weft-testsrv",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "weft-net"
-version = "0.1.0"
-dependencies = [
- "libc",
- "socket2",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "weft-testsrv"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "http-body-util",
- "hyper",
- "hyper-util",
- "tokio",
 ]
 
 [[package]]

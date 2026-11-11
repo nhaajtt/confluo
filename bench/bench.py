@@ -1,8 +1,8 @@
-"""Runs the same downloads through Weft and Baseline and records time, CPU, memory and server-side counters.
+"""Runs the same downloads through Confluo and Baseline and records time, CPU, memory and server-side counters.
 
     bench/.venv/Scripts/python bench/bench.py --ip <LAN address> --runs 3
 
-Everything is local: the file server is `weft-testsrv`, bound to one of this
+Everything is local: the file server is `confluo-testsrv`, bound to one of this
 machine's own LAN addresses (Baseline binds its sockets to real adapters and cannot
 reach 127.0.0.1). Results go to bench/results/.
 """
@@ -26,12 +26,12 @@ import psutil
 
 ROOT = Path(__file__).resolve().parent.parent
 REL = ROOT / "target" / "release"
-WEFT = REL / "weft.exe"
-WEFT_APP = REL / "weft-app.exe"
-TESTSRV = REL / "weft-testsrv.exe"
+CONFLUO = REL / "confluo.exe"
+CONFLUO_APP = REL / "confluo-app.exe"
+TESTSRV = REL / "confluo-testsrv.exe"
 BASELINE_DRIVER = ROOT / "ref" / "baseline-drive.mjs"
 MIB = 1 << 20
-APP_TIMEOUT = int(os.environ.get("WEFT_BENCH_APP_TIMEOUT", "900"))
+APP_TIMEOUT = int(os.environ.get("CONFLUO_BENCH_APP_TIMEOUT", "900"))
 
 SCENARIOS = {
     # name: (size, server flags, what it shows)
@@ -120,10 +120,10 @@ class Server:
         self.proc.wait()
 
 
-def run_weft_cli(url: str, out: Path, extra: list[str] | None = None) -> dict:
+def run_confluo_cli(url: str, out: Path, extra: list[str] | None = None) -> dict:
     t0 = time.perf_counter()
     p = subprocess.Popen(
-        [str(WEFT), "get", url, "-o", str(out), "-q", "--json", "--give-up", "120", *(extra or [])],
+        [str(CONFLUO), "get", url, "-o", str(out), "-q", "--json", "--give-up", "120", *(extra or [])],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         text=True,
@@ -138,7 +138,7 @@ def run_weft_cli(url: str, out: Path, extra: list[str] | None = None) -> dict:
     return {"ok": True, "seconds": last["seconds"], "process_seconds": wall, "bytes": last["size"], "cpu_seconds": cpu, "peak_rss": rss}
 
 
-def start_weft_app(state: Path, out: Path) -> tuple[subprocess.Popen, str, float]:
+def start_confluo_app(state: Path, out: Path) -> tuple[subprocess.Popen, str, float]:
     state.mkdir(parents=True, exist_ok=True)
     settings = {
         "settings": {"download_dir": str(out), "max_concurrent": 3, "connections_per_network": 32, "speed_limit": 0,
@@ -148,27 +148,27 @@ def start_weft_app(state: Path, out: Path) -> tuple[subprocess.Popen, str, float
     }
     (state / "downloads.json").write_text(json.dumps(settings))
     (state / "bridge-autostart").write_text("1")
-    env = dict(os.environ, WEFT_STATE_DIR=str(state))
+    env = dict(os.environ, CONFLUO_STATE_DIR=str(state))
     t0 = time.perf_counter()
-    p = subprocess.Popen([str(WEFT_APP)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    p = subprocess.Popen([str(CONFLUO_APP)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     deadline = time.time() + 30
     while time.time() < deadline:
         try:
-            if http_json("http://127.0.0.1:47610/v1/ping", timeout=0.5).get("app") == "weft":
+            if http_json("http://127.0.0.1:47610/v1/ping", timeout=0.5).get("app") == "confluo":
                 break
         except OSError:
             time.sleep(0.02)
     else:
         kill_tree(p.pid)
-        raise RuntimeError("Weft app did not start")
+        raise RuntimeError("Confluo app did not start")
     startup = time.perf_counter() - t0
     token = (state / "bridge-token").read_text().strip()
     return p, token, startup
 
 
-def run_weft_app(url: str, out: Path) -> dict:
-    state = Path(tempfile.mkdtemp(prefix="weft-bench-state-"))
-    p, token, startup = start_weft_app(state, out)
+def run_confluo_app(url: str, out: Path) -> dict:
+    state = Path(tempfile.mkdtemp(prefix="confluo-bench-state-"))
+    p, token, startup = start_confluo_app(state, out)
     try:
         time.sleep(1.5)  # let the window finish loading, as a user would
         mon = Monitor(p.pid)
@@ -243,7 +243,7 @@ def run_baseline(url: str, out: Path, extra: list[str] | None = None) -> dict:
 # Two-sided 95% points of Student's t for small samples, by degrees of freedom.
 T95 = {1: 12.71, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 14: 2.145, 19: 2.093}
 
-SUBJECTS = {"weft-cli": run_weft_cli, "weft-app": run_weft_app, "baseline": run_baseline}
+SUBJECTS = {"confluo-cli": run_confluo_cli, "confluo-app": run_confluo_app, "baseline": run_baseline}
 
 
 def summarise(runs: list[dict]) -> dict:
@@ -281,7 +281,7 @@ def main():
     ap.add_argument("--subjects", default=",".join(SUBJECTS))
     args = ap.parse_args()
 
-    work = Path(tempfile.mkdtemp(prefix="weft-bench-"))
+    work = Path(tempfile.mkdtemp(prefix="confluo-bench-"))
     results: dict = {"when": time.strftime("%Y-%m-%d %H:%M:%S"), "machine": {"cpu": os.cpu_count(), "ram_gib": round(psutil.virtual_memory().total / 2**30)}, "runs": args.runs, "scenarios": {}}
     try:
         for name in args.scenarios.split(","):

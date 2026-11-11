@@ -9,10 +9,10 @@ use std::time::{Duration, Instant};
 use sha2::{Digest, Sha256};
 use tokio::sync::watch;
 use url::Url;
-use weft_engine::limit::Limiter;
-use weft_engine::sched::SchedConfig;
-use weft_engine::{Checksum, Command, Config, Error, Outcome, Route, Snapshot, Spec, Verdict, download};
-use weft_testsrv::{Behavior, Server, content};
+use confluo_engine::limit::Limiter;
+use confluo_engine::sched::SchedConfig;
+use confluo_engine::{Checksum, Command, Config, Error, Outcome, Route, Snapshot, Spec, Verdict, download};
+use confluo_testsrv::{Behavior, Server, content};
 
 const MIB: u64 = 1 << 20;
 
@@ -98,7 +98,7 @@ fn assert_file(run: &Run, seed: u64, size: u64) -> std::path::PathBuf {
         .unwrap()
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|n| n.contains(".weft"))
+        .filter(|n| n.contains(".confluo"))
         .collect();
     assert!(leftovers.is_empty(), "left behind: {leftovers:?}");
     path.clone()
@@ -290,7 +290,7 @@ async fn killed_mid_download_resumes_from_the_journal() {
     let journal = std::fs::read_dir(dir.path())
         .unwrap()
         .filter_map(|e| e.ok())
-        .any(|e| e.file_name().to_string_lossy().ends_with(".weft-journal"));
+        .any(|e| e.file_name().to_string_lossy().ends_with(".confluo-journal"));
     assert!(journal, "no journal survived the kill");
     let before = srv.stats().body_bytes.load(Ordering::Relaxed);
     srv.behavior(|b| b.rate_total = None);
@@ -452,7 +452,7 @@ async fn dead_route_does_not_stop_the_download() {
     let dead = Route {
         id: "dead".into(),
         label: "dead".into(),
-        bind: Some(weft_net::BindSpec {
+        bind: Some(confluo_net::BindSpec {
             index: 0x00FF_FFF0,
             name: "nope0".into(),
             v4: Some([203, 0, 113, 9].into()),
@@ -464,7 +464,7 @@ async fn dead_route_does_not_stop_the_download() {
     let r = run_with(spec(dir.path(), &[srv.url()]), cfg(), vec![dead, Route::system()]).await;
     assert_file(&r, 121, size);
     let seen_retrying = r.snaps.iter().any(|s| {
-        s.routes.iter().any(|r| r.id == "dead" && r.health == weft_engine::download::RouteHealth::Retrying)
+        s.routes.iter().any(|r| r.id == "dead" && r.health == confluo_engine::download::RouteHealth::Retrying)
     });
     assert!(seen_retrying, "the dead route was never reported as failing");
 }

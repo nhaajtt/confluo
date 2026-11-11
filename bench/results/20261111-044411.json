@@ -10,7 +10,7 @@
    "about": "server allows 4 connections, 2 MiB/s each",
    "size": "200m",
    "subjects": {
-    "weft-app": {
+    "confluo-app": {
      "summary": {
       "ok": 16,
       "runs": 16,

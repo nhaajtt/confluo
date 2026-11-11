@@ -1,4 +1,4 @@
-//! The Weft download engine.
+//! The Confluo download engine.
 
 pub mod disk;
 pub mod download;

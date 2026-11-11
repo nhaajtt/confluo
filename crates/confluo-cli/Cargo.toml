@@ -1,5 +1,5 @@
 [package]
-name = "weft-cli"
+name = "confluo-cli"
 version = "0.1.0"
 edition.workspace = true
 
@@ -7,11 +7,11 @@ edition.workspace = true
 serde_json = "1.0.154"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "signal", "sync", "time"] }
 url = "2.5.8"
-weft-engine = { version = "0.1.0", path = "../weft-engine" }
-weft-net = { version = "0.1.0", path = "../weft-net" }
+confluo-engine = { version = "0.1.0", path = "../confluo-engine" }
+confluo-net = { version = "0.1.0", path = "../confluo-net" }
 
 [[bin]]
-name = "weft"
+name = "confluo"
 path = "src/main.rs"
 
 [lints]

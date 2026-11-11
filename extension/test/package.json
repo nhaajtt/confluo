@@ -1,5 +1,5 @@
 {
-  "name": "weft-extension-browser-test",
+  "name": "confluo-extension-browser-test",
   "private": true,
   "type": "module",
   "dependencies": {

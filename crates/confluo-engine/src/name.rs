@@ -99,7 +99,7 @@ pub fn unique(dir: &Path, name: &str, taken: impl Fn(&Path) -> bool) -> String {
 }
 
 pub fn part_path(dir: &Path, name: &str) -> PathBuf {
-    dir.join(format!("{name}.weft"))
+    dir.join(format!("{name}.confluo"))
 }
 
 #[cfg(test)]

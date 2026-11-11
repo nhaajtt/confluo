@@ -128,25 +128,25 @@ function store(key: string, value: string) {
 }
 
 export const [theme, setThemeSignal] = createSignal<"dark" | "light">(
-  stored("weft.theme", "dark") === "light" ? "light" : "dark",
+  stored("confluo.theme", "dark") === "light" ? "light" : "dark",
 );
 export const [accent, setAccentSignal] = createSignal<Accent>(
-  (ACCENTS as readonly string[]).includes(stored("weft.accent", "neon"))
-    ? (stored("weft.accent", "neon") as Accent)
+  (ACCENTS as readonly string[]).includes(stored("confluo.accent", "neon"))
+    ? (stored("confluo.accent", "neon") as Accent)
     : "neon",
 );
-export const [reducedMotion, setReducedSignal] = createSignal(stored("weft.motion", "") === "reduced");
+export const [reducedMotion, setReducedSignal] = createSignal(stored("confluo.motion", "") === "reduced");
 
 export function setTheme(t: "dark" | "light") {
   document.documentElement.dataset.theme = t;
-  store("weft.theme", t);
+  store("confluo.theme", t);
   setThemeSignal(t);
   setTick((n) => n + 1);
 }
 
 export function setAccent(a: Accent) {
   document.documentElement.dataset.accent = a;
-  store("weft.accent", a);
+  store("confluo.accent", a);
   setAccentSignal(a);
   setTick((n) => n + 1);
 }
@@ -154,6 +154,6 @@ export function setAccent(a: Accent) {
 export function setReducedMotion(on: boolean) {
   if (on) document.documentElement.dataset.motion = "reduced";
   else delete document.documentElement.dataset.motion;
-  store("weft.motion", on ? "reduced" : "");
+  store("confluo.motion", on ? "reduced" : "");
   setReducedSignal(on);
 }

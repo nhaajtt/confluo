@@ -6,7 +6,7 @@ use http_body_util::BodyExt;
 use hyper::body::Incoming;
 use hyper::{Response, StatusCode};
 use url::Url;
-use weft_net::BindSpec;
+use confluo_net::BindSpec;
 
 use crate::error::{Error, Result};
 use crate::http::{self, Ask, Conn, Fetched, RequestOptions};

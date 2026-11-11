@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Weft",
+  "productName": "Confluo",
   "version": "0.1.0",
-  "identifier": "dev.weft.app",
+  "identifier": "dev.confluo.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Weft",
+        "title": "Confluo",
         "width": 1180,
         "height": 760,
         "minWidth": 860,

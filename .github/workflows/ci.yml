@@ -18,11 +18,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
       # The desktop shell needs system WebView libraries; it is built in the app job.
-      - run: cargo clippy --workspace --exclude weft-app --all-targets -- -D warnings
-      - run: cargo test --workspace --exclude weft-app
+      - run: cargo clippy --workspace --exclude confluo-app --all-targets -- -D warnings
+      - run: cargo test --workspace --exclude confluo-app
       # Files past 4 GiB: slow, so only where disk and time are plentiful.
       - if: matrix.os == 'ubuntu-latest'
-        run: cargo test --release -p weft-engine --test stress -- --ignored
+        run: cargo test --release -p confluo-engine --test stress -- --ignored
       - run: node --check extension/background.js && node --check extension/options.js && node --check site/main.js
 
   app:
@@ -47,5 +47,5 @@ jobs:
         working-directory: app
       - uses: actions/upload-artifact@v4
         with:
-          name: weft-windows
+          name: confluo-windows
           path: target/release/bundle/nsis/*.exe

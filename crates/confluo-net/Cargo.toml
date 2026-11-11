@@ -1,5 +1,5 @@
 [package]
-name = "weft-net"
+name = "confluo-net"
 version = "0.1.0"
 edition.workspace = true
 
