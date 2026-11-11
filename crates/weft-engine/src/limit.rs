@@ -81,7 +81,7 @@ impl RateMeter {
             return;
         }
         let sample = self.bucket_bytes as f64 / elapsed.as_secs_f64();
-        self.rate = if self.primed { self.rate * 0.6 + sample * 0.4 } else { sample };
+        self.rate = if self.primed { self.rate * 0.3 + sample * 0.7 } else { sample };
         self.primed = true;
         self.bucket_start = now;
         self.bucket_bytes = 0;

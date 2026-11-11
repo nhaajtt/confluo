@@ -8,9 +8,15 @@
 
 use std::time::{Duration, Instant};
 
-const SETTLE: Duration = Duration::from_millis(750);
+/// How long new connections get to show what they add before being judged.
+const SETTLE: Duration = Duration::from_millis(1000);
+/// How often the speed is looked at while waiting for the first steady reading.
+const BASELINE_STEP: Duration = Duration::from_millis(500);
+/// A doubling that brings at least this much more speed means each connection is
+/// capped separately; the count then goes up four-fold instead of two-fold.
+const STRONG_GAIN: f64 = 1.6;
 const RETRY_GROWTH: Duration = Duration::from_secs(30);
-const CEILING_RECOVERY: Duration = Duration::from_secs(60);
+const CEILING_RECOVERY: Duration = Duration::from_secs(15);
 const GAIN: f64 = 1.10;
 const RISING: f64 = 1.03;
 
@@ -32,6 +38,8 @@ pub struct Tuner {
     last_rate: f64,
     /// Evaluations spent waiting for new connections to get up to speed.
     waits: u32,
+    /// A doubling of connections has (nearly) doubled the speed at least once.
+    strong_gain: bool,
     changed_at: Instant,
     ceiling_at: Instant,
     /// Growth steps that paid off.
@@ -52,6 +60,7 @@ impl Tuner {
             base_rate: 0.0,
             last_rate: 0.0,
             waits: 0,
+            strong_gain: false,
             changed_at: now,
             ceiling_at: now,
             gains: 0,
@@ -70,7 +79,7 @@ impl Tuner {
 
     /// True when extra connections kept paying off: something caps each connection.
     pub fn per_connection_capped(&self) -> bool {
-        self.gains >= 2
+        self.gains >= 2 || self.strong_gain
     }
 
     pub fn disk_limited(&self, now: Instant) -> bool {
@@ -84,7 +93,8 @@ impl Tuner {
             self.ceiling += 1;
             self.ceiling_at = now;
         }
-        if now.duration_since(self.changed_at) < SETTLE || starved || active < self.target() {
+        let settle = if self.base_rate == 0.0 { BASELINE_STEP } else { SETTLE };
+        if now.duration_since(self.changed_at) < settle || starved || active < self.target() {
             return;
         }
         let rising = rate > self.last_rate * RISING;
@@ -98,12 +108,14 @@ impl Tuner {
                     return;
                 }
                 self.base_rate = rate;
-                self.grow(now);
+                self.grow(now, 2);
             }
             Phase::Grow if rate >= self.base_rate * GAIN => {
                 self.gains += 1;
+                let strong = rate >= self.base_rate * STRONG_GAIN;
+                self.strong_gain |= strong;
                 self.base_rate = rate;
-                self.grow(now);
+                self.grow(now, if strong { 4 } else { 2 });
             }
             Phase::Grow if rising && self.waits < 3 => {
                 // The new connections are still getting up to speed: look again.
@@ -122,15 +134,15 @@ impl Tuner {
                 {
                     self.phase = Phase::Grow;
                     self.base_rate = rate;
-                    self.grow(now);
+                    self.grow(now, 2);
                 }
             }
         }
     }
 
-    fn grow(&mut self, now: Instant) {
+    fn grow(&mut self, now: Instant, factor: usize) {
         self.prev_target = self.target;
-        self.target = (self.target * 2).min(self.max).min(self.ceiling.max(1));
+        self.target = (self.target * factor).min(self.max).min(self.ceiling.max(1));
         self.waits = 0;
         self.changed_at = now;
         if self.target == self.prev_target {
@@ -190,11 +202,11 @@ mod tests {
         step(&mut t, &mut now, 4.0);
         step(&mut t, &mut now, 4.0); // baseline -> 8
         assert_eq!(t.target(), 8);
-        step(&mut t, &mut now, 8.0); // gain -> 16
+        step(&mut t, &mut now, 5.5); // a modest gain -> 16
         assert_eq!(t.target(), 16);
-        step(&mut t, &mut now, 8.1); // no gain, not rising -> back to 8
+        step(&mut t, &mut now, 5.6); // no gain, not rising -> back to 8
         assert_eq!(t.target(), 8);
-        step(&mut t, &mut now, 8.1);
+        step(&mut t, &mut now, 5.6);
         assert_eq!(t.target(), 8);
     }
 
@@ -208,6 +220,8 @@ mod tests {
         assert_eq!(t.target(), 8);
         step(&mut t, &mut now, 6.0); // now it is a gain -> 16
         assert_eq!(t.target(), 16);
+        step(&mut t, &mut now, 12.0); // doubling doubled the speed: capped per connection -> straight to 32
+        assert_eq!(t.target(), 32);
     }
 
     #[test]
@@ -228,7 +242,7 @@ mod tests {
         t.refused(now, 6);
         assert_eq!(t.target(), 5);
         assert!(t.refusing());
-        now += Duration::from_secs(61);
+        now += Duration::from_secs(16);
         t.tick(now, 1.0, 5, false);
         assert_eq!(t.ceiling, 6);
     }

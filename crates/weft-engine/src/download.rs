@@ -108,7 +108,7 @@ impl Default for Config {
             connect_timeout: r.connect_timeout,
             header_timeout: r.header_timeout,
             stall_timeout: Duration::from_secs(20),
-            conns_initial: 4,
+            conns_initial: 8,
             conns_max: 32,
             conns_total: 64,
             sched: SchedConfig::default(),
@@ -1085,7 +1085,7 @@ pub async fn download(
         let mut budget = if unassigned > 0 {
             unassigned.div_ceil(ctx.cfg.sched.min_piece.max(1)).min(1024) as usize
         } else {
-            usize::from(has_work && !nearly_done)
+            if has_work && !nearly_done { 4 } else { 0 }
         };
         let conns_total = if whole { 1 } else { cfg.conns_total };
         if let Some((bind, stream)) = head.take()

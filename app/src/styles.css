@@ -215,7 +215,7 @@ main {
 .row.completed .name b, .row.paused .name b { color: var(--ts); }
 .prog { display: flex; align-items: center; gap: 10px; }
 .bar { flex: 1; height: 3px; background: var(--border); position: relative; overflow: hidden; }
-.bar i { position: absolute; inset: 0 auto 0 0; background: var(--ts); transition: width 0.25s linear; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--ts); }
 .row.running .bar i { background: var(--ac); }
 .row.failed .bar i { background: var(--bad); }
 .pct { font-size: 12px; width: 44px; text-align: right; color: var(--ts); }

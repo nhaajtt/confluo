@@ -1,0 +1,103 @@
+{
+ "when": "2026-11-11 01:41:55",
+ "machine": {
+  "cpu": 32,
+  "ram_gib": 32
+ },
+ "runs": 1,
+ "scenarios": {
+  "link-cap": {
+   "about": "one 20 MiB/s bottleneck shared by all connections",
+   "size": "200m",
+   "subjects": {
+    "weft-cli": {
+     "summary": {
+      "ok": 1,
+      "runs": 1,
+      "seconds": 10.2818163,
+      "seconds_min": 10.2818163,
+      "seconds_max": 10.2818163,
+      "mib_per_sec": 19.45181611540755,
+      "cpu_seconds": 0.8125,
+      "peak_rss_mib": 15.8359375,
+      "startup_seconds": null,
+      "server_requests": 15,
+      "server_peak_connections": 8,
+      "overhead_percent": 0.35770702362060547
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 10.2818163,
+       "process_seconds": 10.41159869999683,
+       "bytes": 209715200,
+       "cpu_seconds": 0.8125,
+       "peak_rss": 16605184,
+       "server_requests": 15,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.35770702362060547
+      }
+     ]
+    },
+    "weft-app": {
+     "summary": {
+      "ok": 1,
+      "runs": 1,
+      "seconds": 10.286686699997517,
+      "seconds_min": 10.286686699997517,
+      "seconds_max": 10.286686699997517,
+      "mib_per_sec": 19.442606335045497,
+      "cpu_seconds": 12.515625,
+      "peak_rss_mib": 411.49609375,
+      "startup_seconds": 1.3526758999942103,
+      "server_requests": 15,
+      "server_peak_connections": 8,
+      "overhead_percent": 0.3063793182373047
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 10.286686699997517,
+       "bytes": 209715200,
+       "cpu_seconds": 12.515625,
+       "peak_rss": 431484928,
+       "startup_seconds": 1.3526758999942103,
+       "server_requests": 15,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.3063793182373047
+      }
+     ]
+    },
+    "baseline": {
+     "summary": {
+      "ok": 1,
+      "runs": 1,
+      "seconds": 10.169,
+      "seconds_min": 10.169,
+      "seconds_max": 10.169,
+      "mib_per_sec": 19.66761726816796,
+      "cpu_seconds": 29.671875,
+      "peak_rss_mib": 682.85546875,
+      "startup_seconds": 0.72,
+      "server_requests": 203,
+      "server_peak_connections": 32,
+      "overhead_percent": 0.16033554077148438
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 10.169,
+       "bytes": 209715200,
+       "cpu_seconds": 29.671875,
+       "peak_rss": 716025856,
+       "startup_seconds": 0.72,
+       "server_requests": 203,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.16033554077148438
+      }
+     ]
+    }
+   }
+  }
+ }
+}
