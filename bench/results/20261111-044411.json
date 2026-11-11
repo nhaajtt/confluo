@@ -1,0 +1,213 @@
+{
+ "when": "2026-11-11 04:36:26",
+ "machine": {
+  "cpu": 32,
+  "ram_gib": 32
+ },
+ "runs": 16,
+ "scenarios": {
+  "busy-server": {
+   "about": "server allows 4 connections, 2 MiB/s each",
+   "size": "200m",
+   "subjects": {
+    "weft-app": {
+     "summary": {
+      "ok": 16,
+      "runs": 16,
+      "seconds": 25.78786709999258,
+      "seconds_min": 25.53590620000614,
+      "seconds_max": 25.806072099978337,
+      "seconds_mean": 25.716120012497413,
+      "seconds_stdev": 0.11660353491393277,
+      "seconds_ci95": 0.057135732107827054,
+      "mib_per_sec": 7.755585194664562,
+      "cpu_seconds": 2.359375,
+      "peak_rss_mib": 358.232421875,
+      "startup_seconds": 0.539178550010547,
+      "server_requests": 26.5,
+      "server_peak_connections": 5.0,
+      "overhead_percent": 0.03145909309387207
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 25.547395000001416,
+       "bytes": 209715200,
+       "cpu_seconds": 2.953125,
+       "peak_rss": 374239232,
+       "startup_seconds": 0.5590577000111807,
+       "server_requests": 24,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.011724472045898438
+      },
+      {
+       "ok": true,
+       "seconds": 25.79052840001532,
+       "bytes": 209715200,
+       "cpu_seconds": 2.328125,
+       "peak_rss": 374677504,
+       "startup_seconds": 0.5352435999957379,
+       "server_requests": 27,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.04332399368286133
+      },
+      {
+       "ok": true,
+       "seconds": 25.558699999994133,
+       "bytes": 209715200,
+       "cpu_seconds": 2.265625,
+       "peak_rss": 378564608,
+       "startup_seconds": 0.5297449000063352,
+       "server_requests": 27,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.022187232971191406
+      },
+      {
+       "ok": true,
+       "seconds": 25.794542999996338,
+       "bytes": 209715200,
+       "cpu_seconds": 2.390625,
+       "peak_rss": 376557568,
+       "startup_seconds": 0.5348992999934126,
+       "server_requests": 27,
+       "server_peak_connections": 6,
+       "overhead_percent": 0.009419441223144531
+      },
+      {
+       "ok": true,
+       "seconds": 25.788836599997012,
+       "bytes": 209715200,
+       "cpu_seconds": 2.21875,
+       "peak_rss": 377561088,
+       "startup_seconds": 0.5352294000040274,
+       "server_requests": 27,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.03499174118041992
+      },
+      {
+       "ok": true,
+       "seconds": 25.793247099994915,
+       "bytes": 209715200,
+       "cpu_seconds": 2.4375,
+       "peak_rss": 376995840,
+       "startup_seconds": 0.5381783000193536,
+       "server_requests": 28,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.02624797821044922
+      },
+      {
+       "ok": true,
+       "seconds": 25.78689759998815,
+       "bytes": 209715200,
+       "cpu_seconds": 2.6875,
+       "peak_rss": 374882304,
+       "startup_seconds": 0.5433659999980591,
+       "server_requests": 26,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.03207874298095703
+      },
+      {
+       "ok": true,
+       "seconds": 25.553608699992765,
+       "bytes": 209715200,
+       "cpu_seconds": 2.859375,
+       "peak_rss": 374657024,
+       "startup_seconds": 0.5425724000087939,
+       "server_requests": 27,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.016631126403808594
+      },
+      {
+       "ok": true,
+       "seconds": 25.80317759999889,
+       "bytes": 209715200,
+       "cpu_seconds": 2.546875,
+       "peak_rss": 374628352,
+       "startup_seconds": 0.5449910000024829,
+       "server_requests": 26,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.01475667953491211
+      },
+      {
+       "ok": true,
+       "seconds": 25.785347600001842,
+       "bytes": 209715200,
+       "cpu_seconds": 2.59375,
+       "peak_rss": 374669312,
+       "startup_seconds": 0.5447168000100646,
+       "server_requests": 27,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.04385232925415039
+      },
+      {
+       "ok": true,
+       "seconds": 25.806072099978337,
+       "bytes": 209715200,
+       "cpu_seconds": 2.25,
+       "peak_rss": 377352192,
+       "startup_seconds": 0.5493773999914993,
+       "server_requests": 26,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.05738353729248047
+      },
+      {
+       "ok": true,
+       "seconds": 25.53590620000614,
+       "bytes": 209715200,
+       "cpu_seconds": 2.25,
+       "peak_rss": 379695104,
+       "startup_seconds": 0.5348057000082918,
+       "server_requests": 25,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.03168821334838867
+      },
+      {
+       "ok": true,
+       "seconds": 25.79106670001056,
+       "bytes": 209715200,
+       "cpu_seconds": 2.328125,
+       "peak_rss": 374546432,
+       "startup_seconds": 0.5401788000017405,
+       "server_requests": 25,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.03122997283935547
+      },
+      {
+       "ok": true,
+       "seconds": 25.7915485999838,
+       "bytes": 209715200,
+       "cpu_seconds": 2.40625,
+       "peak_rss": 376336384,
+       "startup_seconds": 0.5459084000030998,
+       "server_requests": 26,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.03375673294067383
+      },
+      {
+       "ok": true,
+       "seconds": 25.549359800003003,
+       "bytes": 209715200,
+       "cpu_seconds": 1.90625,
+       "peak_rss": 379113472,
+       "startup_seconds": 0.5316258000093512,
+       "server_requests": 25,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.0317530632019043
+      },
+      {
+       "ok": true,
+       "seconds": 25.78168519999599,
+       "bytes": 209715200,
+       "cpu_seconds": 2.28125,
+       "peak_rss": 374931456,
+       "startup_seconds": 0.534782400005497,
+       "server_requests": 27,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.019138336181640625
+      }
+     ]
+    }
+   }
+  }
+ }
+}

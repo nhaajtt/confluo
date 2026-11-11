@@ -128,43 +128,75 @@ routing and parallel flows.
 ## Benchmarks
 
 Machine: Windows 11, i9-14900KS, 32 GB. Both apps download from `weft-testsrv` on this machine's
-LAN address. Median of 3 runs. Baseline is commit `2e44a2f`, built with its own `npm run build:unpack`
-and driven through its real window with Playwright. Reproduce with:
+LAN address, 7 runs each. Baseline is commit `2e44a2f`, built with its own `npm run build:unpack` and
+driven through its real window with Playwright. Reproduce with:
 
 ```sh
-bench/.venv/Scripts/python bench/bench.py --ip <a LAN address of this machine> --runs 3
+bench/.venv/Scripts/python bench/bench.py --ip <a LAN address of this machine> --runs 7
 bench/.venv/Scripts/python bench/crash.py --ip <same> --runs 3
+bench/.venv/Scripts/python bench/soak.py  --ip <same> --events 12
 ```
 
-Raw output is in `bench/results/`.
+Raw output is in `bench/results/` (`20261111-043403` is the run quoted here). Times are seconds,
+median with mean ± 95% confidence interval of the mean in brackets.
 
 | Scenario | Weft app | Baseline | Result |
 |---|---|---|---|
-| No limit, 1 GiB | 1.26 s (810 MiB/s) | 4.62 s (222 MiB/s) | Weft 3.7x faster |
-| Server caps each connection at 1 MiB/s, 200 MiB | 8.32 s | 7.44 s | **Baseline 11% faster** |
-| One 20 MiB/s bottleneck, 200 MiB | 10.31 s | 10.11 s | equal (the link is the limit) |
-| Server without Range support, 200 MiB | 5.18 s | 5.25 s | equal |
-| Server allows 4 connections, 200 MiB | 29.3 s (CLI) | 26.1 s | **Baseline 11% faster** |
-| 150 ms before each response, 4 MiB/s per connection, 200 MiB | 4.48 s | 3.55 s | **Baseline 21% faster** |
+| No limit, 1 GiB | 1.70 (1.67 ± 0.07) | 6.36 (6.31 ± 0.26) | Weft 3.7x faster |
+| Server caps each connection at 1 MiB/s, 200 MiB | 7.32 (7.32 ± 0.02) | 7.48 (7.50 ± 0.04) | Weft 2% faster |
+| Server allows 4 connections, 200 MiB | 25.54 (25.50 ± 0.21) | 26.11 (26.10 ± 0.03) | Weft 2% faster |
+| Server without Range support, 200 MiB | 5.18 (5.19 ± 0.02) | 5.29 (5.30 ± 0.03) | Weft 2% faster |
+| 150 ms before each response, 4 MiB/s per connection, 200 MiB | 3.72 (3.63 ± 0.13) | 3.62 (3.63 ± 0.03) | no difference shown |
+| One 20 MiB/s bottleneck, 200 MiB | 10.30 (10.30 ± 0.01) | 10.16 (10.14 ± 0.03) | **Baseline 1.4% faster** |
+
+The three server-limited rows were losses of 11%, 11% and 21% in the previous round (8.32, 29.3
+and 4.48 s). What changed: the per-network speed meter no longer lags a tick behind, a clear gain
+is accepted early, every lease worth splitting gets a new connection at once, and a refused
+connection ceiling is tested again after one second instead of fifteen.
+
+What is still not a win:
+
+- **One shared bottleneck: Baseline is 1.4% (0.14 s) faster**, consistently. Weft spends about that
+  long at the start finding out that 16 connections do no more than 8.
+- **Slow first byte: no difference can be claimed.** The means are equal; Weft's runs fall into two
+  groups a quarter of a second apart (3.47 and 3.72 s) depending on which tick the tuner decides
+  on, so its median is 3% worse and its best run 4% better.
+- **One of the 7 Weft-app runs with the 4-connection server did not finish within the harness's
+  15 minutes** and is not in the numbers above (the other six and all seven CLI runs are). It did
+  not happen again in 16 further runs. A cause was found that fits and was fixed: on Windows the
+  saved list could not be replaced while another program had it open (the harness reads it every
+  20 ms), and that failure was ignored, so a download could finish without "completed" ever being
+  written. Replacing a file now retries for up to two seconds (`disk::replace_file`, with a test
+  that holds the file open). Because the failure could not be reproduced, it cannot be shown that
+  this was the cause.
+- With `--rate-conn` the server sees up to 38 connections open for a moment although Weft never
+  runs more than 32: a connection whose tail was handed to another one is closed mid-response and
+  the server notices a little later.
 
 | Cost | Weft engine (CLI) | Weft app | Baseline |
 |---|---|---|---|
-| CPU time per download (range over scenarios) | 0.1 - 1.3 s | 1.7 - 3.2 s | 10.6 - 50.9 s |
-| Peak memory, whole process tree | 11 - 43 MiB | 388 - 420 MiB | 701 - 840 MiB |
-| Requests for a 200 MiB file | 1 - 66 | same | about 200 |
+| CPU time per download (range over scenarios) | 0.1 - 1.7 s | 2.0 - 3.5 s | 12.8 - 60.1 s |
+| Peak memory, whole process tree | 11 - 48 MiB | 358 - 395 MiB | 596 - 700 MiB |
+| Requests for a 200 MiB file | 1 - 83 | same | about 200 |
 | Installer | | 2.3 MiB | 258 MiB |
-| Installed size | | 7 MiB | 464 MiB unpacked |
-| Launch to ready | | 0.5 - 1.4 s | not measured the same way |
+| Launch to ready (installed copy, 3 starts) | | 0.5 - 0.8 s | not measured the same way |
 
 | Hard kill at 50% of a 200 MiB download, then relaunch | Weft | Baseline |
 |---|---|---|
 | File intact afterwards (3 of 3 runs) | yes | yes |
-| Bytes fetched again | 21 - 24 MiB | 112 - 114 MiB |
+| Bytes fetched again | 6 - 16 MiB | 112 - 113 MiB |
 
-Where Weft loses, the cause is known: it starts with 8 connections and reaches 32 about two
-seconds later than Baseline, because it waits to see that more connections really help. On a 200 MiB
-file that costs about a second; the gap shrinks as files get larger. With a server that allows only
-4 connections, Weft backs off further than needed after the refusals and takes 15 s to climb back.
+**Soak (`bench/soak.py`).** A 1 GiB download at 40 MiB/s, interrupted 12 times at random moments
+(11 hard kills of the downloader, 1 kill of the whole server with a restart seconds later): the
+file had the SHA-256 of an undisturbed download and nothing was left behind. 223 MiB (22%) was
+fetched twice, about 19 MiB per kill: what arrived since the last journal write half a second
+earlier, plus what the server had already pushed into sockets.
+
+**Desktop app under load.** Five minutes at 20 MiB/s with the flow panel animating: memory of the
+whole process tree stayed between 407 and 465 MiB with no upward trend, the page's JavaScript heap
+was 5 MiB with 124 DOM nodes at the end. CPU: the engine process about 7% of one core, the WebView
+renderer and GPU processes together about 21% of one core (the animated flow drawing at 20 frames a
+second and four data updates a second). Frame times were not measured.
 
 Not measured, and therefore not claimed:
 
@@ -172,32 +204,59 @@ Not measured, and therefore not claimed:
   (`weft get --emulate-links 4m,2m`), Weft reached 83-95% of the sum of the links on a 60 MiB file.
   That shows the scheduler; it does not show two real networks. Nothing can make two interfaces
   behind the same router faster than one.
-- UI frame times under load (CPU of the renderer and GPU processes was measured instead:
-  about 0.5 s over an 8 s download).
-- Long soak runs.
+- Runs longer than five minutes, and files larger than 8 GiB.
 - Public internet speed: one public mirror varied from 3.4 s to 11.9 s for the same file with
   plain `curl`, so it could not separate the tools. Files downloaded from it matched `curl` byte
   for byte.
 
 ## Tests
 
-`cargo test --workspace`: 58 tests. The engine tests run real downloads against the misbehaving
-server and compare every completed file byte for byte. Covered: parallel ranges, servers without
-ranges or without a length, dropped and stalled connections, refused connections, HTTP 429,
-per-connection caps, pause and resume, a kill without warning, a file changing on the server, an
-expiring signed link, checksum mismatch, mirrors (including a wrong one), unequal routes, a dead
-route, a route removed mid-download, hostile file names, the queue and restart of the list, and the
-bridge refusing unpaired, web-page and rebinding requests. Scheduler and range-set invariants are
+`cargo test --workspace`: 74 tests on Windows (73 elsewhere), plus one slow test run with
+`--release -- --ignored` that downloads a 4.2 GiB file and compares every byte. The engine tests
+run real downloads against the misbehaving server and compare every completed file byte for byte.
+Covered: parallel ranges, servers without ranges or without a length, dropped and stalled
+connections, refused connections and how fast the limit is found again, HTTP 429, per-connection
+caps, speed limits, a complete server outage, pause and resume (including fourteen in two seconds),
+a kill without warning, a file changing on the server, an expiring signed link, checksum mismatch,
+mirrors (including a wrong one), unequal routes, a dead route, a route removed mid-download, hostile
+file names, eighteen downloads at once through the list, concurrent saves of the list, damaged and
+hostile saved state, a file held open by another program, and the bridge refusing unpaired,
+web-page, rebinding, forged, replayed and altered requests. Scheduler and range-set invariants are
 property-tested.
+
+Checked outside `cargo test`, by hand-run scripts in this round:
+
+- **Browser extension in real browsers** (`extension/test/run.mjs`): Chromium 156 and Firefox 160
+  with the unpacked extension and the real app. Ten steps each, all passing: the extension loads,
+  finds the app, reports a wrong code, leaves the download to the browser while unpaired, pairs,
+  hands the download over, the app completes it, and the browser does not also keep a copy.
+  Branded Chrome and Edge were not driven (they no longer load unpacked extensions from the command
+  line); they run the same Manifest V3 code as Chromium.
+- **Installer**: silent install for the current user, start, a 300 MiB download through the
+  installed copy with a matching SHA-256, the list surviving a restart, silent uninstall. After
+  uninstalling, no program files, registry entry or Start Menu entry remained; the pairing code in
+  the app-data folder is left on purpose.
+- **Install command** (`site/install.ps1`): run for real against the page served locally; it
+  installed and started the app, and refused an installer that had one byte appended.
+- **Linux** (Ubuntu under WSL2, kernel 6.6): `cargo clippy -D warnings` clean, the test suite
+  passed three times in a row, and the release `weft` binary downloaded 500 MiB over 32 connections
+  from the test server.
 
 ## Known gaps
 
 - No torrents, Usenet, Telegram or FTP (Baseline has the first three).
 - No proxy support. DNS uses the system resolver, not the DNS servers of each interface.
-- The browser extension was checked against the bridge by script and for syntax, not exercised
-  inside a browser.
-- macOS code compiles in principle but was never built or run; Linux was not run in this round.
-- The installer is not code-signed, so Windows SmartScreen will warn.
+- **macOS has never been built or run.** No toolchain was available; it is in the CI matrix, which
+  has not run yet either. The Linux check was under WSL2, not on a machine with several real
+  network interfaces, and the desktop app has only ever been built for Windows.
+- The installer is not code-signed, so Windows SmartScreen will warn. It installs the app only;
+  the `weft` command-line program is not in it.
+- The browser extension is not in any store; it is loaded unpacked.
+- The resume journal is not authenticated. Someone who can already write to your download folder
+  could mark bytes of a partial file as done. A checksum, when there is one, still catches it.
+- The window may add a download to any folder you pick; a compromised window could pick for you.
+  The content-security policy allows the window no remote code.
+- A download task that panics would leave its row "running" until restart. None has been seen.
 - Interface changes are pushed by the OS on Windows only; elsewhere they are polled each second.
 - Completed-file hashing needs an expected checksum (given by you or advertised by the server).
 

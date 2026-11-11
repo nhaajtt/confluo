@@ -171,6 +171,32 @@ impl DiskWriter {
     }
 }
 
+/// Moves `from` over `to`, trying again for a moment when the move is refused.
+///
+/// On Windows a file cannot be replaced or renamed while another program holds it
+/// open without allowing that: a virus scanner looking at a file that was just
+/// written, an indexer, a backup tool, a script reading the list. Such holds last
+/// milliseconds, so the move is repeated for up to about two seconds before the
+/// error is passed on.
+pub fn replace_file(from: &Path, to: &Path) -> io::Result<()> {
+    let mut wait = std::time::Duration::from_millis(2);
+    let mut waited = std::time::Duration::ZERO;
+    loop {
+        match std::fs::rename(from, to) {
+            Ok(()) => return Ok(()),
+            Err(e)
+                if e.kind() == io::ErrorKind::PermissionDenied
+                    && waited < std::time::Duration::from_secs(2) =>
+            {
+                std::thread::sleep(wait);
+                waited += wait;
+                wait = (wait * 2).min(std::time::Duration::from_millis(100));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+
 /// Opens (or creates) the partial file and reserves space for it without zero-filling.
 pub fn open_part(path: &Path, size: Option<u64>, fresh: bool) -> io::Result<File> {
     let file = OpenOptions::new().read(true).write(true).create(true).truncate(fresh).open(path)?;
@@ -267,5 +293,34 @@ mod tests {
         assert_eq!(&data[0..5], b"hello");
         assert_eq!(&data[1000..1005], b"world");
         assert!(free_space(dir.path()).unwrap() > 0);
+    }
+}
+
+#[cfg(all(test, windows))]
+mod replace_tests {
+    use super::replace_file;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    /// Another program reads the destination without allowing it to be replaced
+    /// (the way most programs open files). The move has to wait for it, not give up.
+    #[test]
+    fn a_reader_holding_the_file_delays_the_move_but_does_not_lose_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let (from, to) = (dir.path().join("list.tmp"), dir.path().join("list.json"));
+        std::fs::write(&to, b"old").unwrap();
+        std::fs::write(&from, b"new").unwrap();
+        // Share mode 1: others may read, nobody may delete or replace.
+        let held = std::fs::OpenOptions::new().read(true).share_mode(1).open(&to).unwrap();
+        assert!(
+            std::fs::rename(&from, &to).is_err(),
+            "the hold does not block a plain rename on this system"
+        );
+        let release = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            drop(held);
+        });
+        replace_file(&from, &to).unwrap();
+        release.join().unwrap();
+        assert_eq!(std::fs::read(&to).unwrap(), b"new");
     }
 }

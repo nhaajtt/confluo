@@ -1367,7 +1367,7 @@ pub async fn download(
             // The name was free when the download started; make sure it still is.
             let name = name::unique(&spec.dir, &paths.name, Path::exists);
             let dest = spec.dir.join(name);
-            std::fs::rename(&paths.part, &dest).map_err(Error::Disk)?;
+            disk::replace_file(&paths.part, &dest).map_err(Error::Disk)?;
             journal::remove(&paths.journal);
             Ok(Outcome::Completed { path: dest, size: total })
         }

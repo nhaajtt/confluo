@@ -112,7 +112,7 @@
 <section id="numbers" class="block">
   <p class="kicker">02 · <span data-vi="Số đo">Numbers</span></p>
   <h2 data-vi="Đo thật, kể cả chỗ không thắng">Measured, including where it does not win</h2>
-  <p class="lede small" data-vi="Cùng một máy, cùng một máy chủ thử chạy tại chỗ, so với Baseline (một trình tải đa mạng mã nguồn mở). Thời gian là trung vị; thấp hơn là tốt hơn.">Same PC, same local test server, against Baseline (an open-source multi-network downloader). Times are medians; lower is better.</p>
+  <p class="lede small" data-vi="Cùng một máy, cùng một máy chủ thử chạy tại chỗ, so với Baseline (một trình tải đa mạng mã nguồn mở). Thời gian là trung vị của 7 lần chạy; thấp hơn là tốt hơn.">Same PC, same local test server, against Baseline (an open-source multi-network downloader). Times are medians of 7 runs; lower is better.</p>
   <div class="table-wrap">
     <table>
       <thead>
@@ -124,7 +124,16 @@
         </tr>
       </thead>
       <tbody id="bench">
-        <tr><td colspan="4" data-vi="Đang cập nhật số đo.">Measurements are being updated.</td></tr>
+        <tr><td><span data-vi="Không giới hạn, file 1 GiB">No limit, 1 GiB file</span><small data-vi="Phần mềm và ổ đĩa là giới hạn">the software and the disk are the limit</small></td><td>1.70 s</td><td>6.36 s</td><td class="win" data-vi="nhanh hơn 3,7 lần">3.7× faster</td></tr>
+        <tr><td><span data-vi="Máy chủ giới hạn 1 MiB/s mỗi kết nối">Server caps each connection at 1 MiB/s</span><small data-vi="200 MiB">200 MiB</small></td><td>7.32 s</td><td>7.48 s</td><td class="win" data-vi="nhanh hơn 2%">2% faster</td></tr>
+        <tr><td><span data-vi="Máy chủ chỉ nhận 4 kết nối">Server accepts only 4 connections</span><small data-vi="200 MiB, 2 MiB/s mỗi kết nối">200 MiB, 2 MiB/s each</small></td><td>25.54 s</td><td>26.11 s</td><td class="win" data-vi="nhanh hơn 2%">2% faster</td></tr>
+        <tr><td><span data-vi="Máy chủ không hỗ trợ tải tiếp">Server without resume support</span><small data-vi="200 MiB, một kết nối">200 MiB, one connection</small></td><td>5.18 s</td><td>5.29 s</td><td class="win" data-vi="nhanh hơn 2%">2% faster</td></tr>
+        <tr><td><span data-vi="Máy chủ trả lời chậm 150 ms">Server answers 150 ms late</span><small data-vi="200 MiB, 4 MiB/s mỗi kết nối">200 MiB, 4 MiB/s each</small></td><td>3.72 s</td><td>3.62 s</td><td class="even" data-vi="ngang nhau (trung bình 3,63 s cả hai)">equal (both average 3.63 s)</td></tr>
+        <tr><td><span data-vi="Một nút cổ chai 20 MiB/s">One 20 MiB/s bottleneck</span><small data-vi="200 MiB">200 MiB</small></td><td>10.30 s</td><td>10.16 s</td><td class="loss" data-vi="chậm hơn 1,4%">1.4% slower</td></tr>
+        <tr><td><span data-vi="RAM cao nhất khi tải">Peak memory while downloading</span><small data-vi="toàn bộ tiến trình của app">the app's whole process tree</small></td><td>358–395 MiB</td><td>596–700 MiB</td><td class="win" data-vi="khoảng một nửa">about half</td></tr>
+        <tr><td><span data-vi="CPU cho một lần tải">CPU time per download</span><small data-vi="tuỳ tình huống">depending on scenario</small></td><td>2.0–3.5 s</td><td>12.8–60.1 s</td><td class="win" data-vi="ít hơn 6–26 lần">6–26× less</td></tr>
+        <tr><td><span data-vi="Tải lại sau khi bị tắt đột ngột ở 50%">Re-downloaded after a hard kill at 50%</span><small data-vi="file 200 MiB">200 MiB file</small></td><td>6–16 MiB</td><td>112 MiB</td><td class="win" data-vi="ít hơn 7–18 lần">7–18× less</td></tr>
+        <tr><td><span data-vi="Bộ cài">Installer</span></td><td>2.3 MiB</td><td>258 MiB</td><td class="win" data-vi="nhỏ hơn 110 lần">110× smaller</td></tr>
       </tbody>
     </table>
   </div>

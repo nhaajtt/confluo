@@ -504,7 +504,9 @@ impl Inner {
             f.sync_all()
         })();
         if written.is_ok() {
-            let _ = std::fs::rename(&tmp, &self.file);
+            // If even the patient move fails, the next change saves again; the list in
+            // memory stays the truth meanwhile.
+            let _ = crate::disk::replace_file(&tmp, &self.file);
         }
     }
 

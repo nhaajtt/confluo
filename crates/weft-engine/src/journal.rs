@@ -44,7 +44,7 @@ pub fn save(path: &Path, journal: &Journal) -> io::Result<()> {
         f.write_all(&bytes)?;
         f.sync_all()?;
     }
-    fs::rename(&tmp, path)
+    crate::disk::replace_file(&tmp, path)
 }
 
 /// Loads a journal. A missing, unreadable or foreign-version file counts as "no journal".
