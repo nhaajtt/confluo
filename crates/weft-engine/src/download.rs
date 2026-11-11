@@ -23,7 +23,7 @@ use crate::http::{self, Ask, Conn, RequestOptions};
 use crate::journal::{self, Journal};
 use crate::limit::{Limiter, RateMeter};
 use crate::name;
-use crate::probe::{Probe, probe};
+use crate::probe::{Probe, probe, probe_keep};
 use crate::ranges::RangeSet;
 use crate::sched::{Lease, SchedConfig, Scheduler};
 use crate::tuner::Tuner;
@@ -31,6 +31,8 @@ use crate::tuner::Tuner;
 /// Stand-in end offset while the size of a file is not known.
 const UNKNOWN_END: u64 = u64::MAX / 4;
 const SAMPLE_LEN: u64 = 4096;
+/// How long a connection with nothing to do stays open waiting for work.
+const PARK_FOR: Duration = Duration::from_secs(4);
 
 /// A way out to the internet: one network interface (or the OS default route).
 #[derive(Debug, Clone)]
@@ -250,6 +252,8 @@ struct Ctx {
     final_size: AtomicU64,
     /// The server cannot serve ranges: one connection, from byte 0.
     whole: bool,
+    /// The connection the probe used, still open, for whichever worker starts first on that route.
+    spare: Mutex<Vec<(Option<BindSpec>, Conn)>>,
 }
 
 /// Keeps the per-route and per-source connection counts right however a worker ends.
@@ -303,8 +307,13 @@ async fn worker(guard: ActiveGuard) -> Exit {
     let ctx = guard.ctx.clone();
     let route = guard.route.clone();
     let source = guard.source;
-    let mut conn: Option<Conn> = None;
+    let mut conn: Option<Conn> = {
+        let mut spare = ctx.spare.lock().unwrap();
+        let found = spare.iter().position(|(bind, _)| *bind == route.route.bind);
+        found.map(|i| spare.swap_remove(i).1)
+    };
     let mut meter = RateMeter::new(Duration::from_millis(500), Instant::now());
+    let mut idle_since: Option<Instant> = None;
     loop {
         if route.active.load(Ordering::Acquire) > route.target.load(Ordering::Acquire) {
             return Exit::Surplus;
@@ -313,7 +322,18 @@ async fn worker(guard: ActiveGuard) -> Exit {
             return Exit::NoWork;
         }
         let rate = meter.rate(Instant::now());
-        let Some(lease) = ctx.sched.lock().unwrap().acquire(rate) else { return Exit::NoWork };
+        let Some(lease) = ctx.sched.lock().unwrap().acquire(rate) else {
+            // Nothing to do right now, but a lease may come back (a failed connection,
+            // a slow one worth splitting). Wait with the connection still warm rather
+            // than paying for a new handshake later.
+            let since = *idle_since.get_or_insert_with(Instant::now);
+            if conn.is_none() || since.elapsed() > PARK_FOR {
+                return Exit::NoWork;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            continue;
+        };
+        idle_since = None;
         let generation = ctx.sources[source].generation.load(Ordering::Acquire);
         let release = LeaseGuard { ctx: &ctx, id: lease.id };
         let result = fetch(&ctx, &route, source, &mut conn, &lease, &mut meter).await;
@@ -558,6 +578,8 @@ struct RouteRun {
     meter: RateMeter,
     last_bytes: u64,
     failures: u32,
+    /// When the last failure was counted, and how much the route had delivered then.
+    failed_at: Option<(Instant, u64)>,
     next_spawn: Instant,
     error: Option<String>,
 }
@@ -651,6 +673,7 @@ pub async fn download(
     // ---- Probe, retrying over every route until one answers. ----
     let started = Instant::now();
     let mut attempt = 0u32;
+    let mut spare: Vec<(Option<BindSpec>, Conn)> = Vec::new();
     let primary = loop {
         match *command.borrow() {
             Command::Pause => return Ok(Outcome::Paused),
@@ -670,9 +693,29 @@ pub async fn download(
         on_snapshot(blank(Phase::Probing, &notes));
         let mut last = None;
         let mut found = None;
-        for r in &routes {
-            match probe(r.bind.as_ref(), &primary_url, &opts).await {
-                Ok(p) => {
+        for (i, r) in routes.iter().enumerate() {
+            // While the probe is on its way, open the connections the download will
+            // start with. On a long path this saves a full handshake before the first byte.
+            let warm: Vec<_> = (1..if i == 0 && attempt == 0 { cfg.conns_initial } else { 1 })
+                .map(|_| {
+                    let (bind, url, opts) = (r.bind.clone(), primary_url.clone(), opts.clone());
+                    tokio::spawn(async move { Conn::open(bind.as_ref(), &url, &opts).await })
+                })
+                .collect();
+            let probed = probe_keep(r.bind.as_ref(), &primary_url, &opts).await;
+            let usable = probed.as_ref().is_ok_and(|(p, _)| p.ranges && p.size.is_some());
+            for handle in warm {
+                if usable && handle.is_finished() {
+                    if let Ok(Ok(conn)) = handle.await {
+                        spare.push((r.bind.clone(), conn));
+                    }
+                } else {
+                    handle.abort();
+                }
+            }
+            match probed {
+                Ok((p, conn)) => {
+                    spare.extend(conn.map(|c| (r.bind.clone(), c)));
                     found = Some(p);
                     break;
                 }
@@ -758,6 +801,7 @@ pub async fn download(
         size,
         final_size: AtomicU64::new(u64::MAX),
         whole,
+        spare: Mutex::new(spare),
         cfg: cfg.clone(),
     });
 
@@ -828,6 +872,7 @@ pub async fn download(
                     meter: RateMeter::new(Duration::from_millis(250), now),
                     last_bytes: 0,
                     failures: 0,
+                    failed_at: None,
                     next_spawn: now,
                     error: None,
                 });
@@ -891,7 +936,16 @@ pub async fn download(
                         if error.refusal() {
                             run.tuner.refused(now, run.shared.active.load(Ordering::Acquire) + 1);
                         }
-                        run.failures += 1;
+                        // Several connections failing in the same instant are one event, and a
+                        // route that delivered data since its last failure starts over at one.
+                        let delivered = run.shared.bytes.load(Ordering::Relaxed);
+                        match run.failed_at {
+                            Some((at, _)) if now.duration_since(at) < Duration::from_millis(300) => {}
+                            Some((_, bytes)) if delivered > bytes => run.failures = 1,
+                            _ => run.failures += 1,
+                        }
+                        run.failures = run.failures.max(1);
+                        run.failed_at = Some((now, delivered));
                         let wait = if error.refusal() { refusal_backoff(run.failures) } else { backoff(run.failures) };
                         run.next_spawn = now + error.retry_after().map_or(wait, |r| r.max(Duration::from_secs(1)));
                         if matches!(error, Error::Status { code: 429, .. }) {
@@ -949,15 +1003,23 @@ pub async fn download(
             pressure_ticks = 0;
         }
 
-        let (unassigned, has_work, steals) = {
-            let s = ctx.sched.lock().unwrap();
-            (s.unassigned(), s.has_work(), s.steals())
+        let parallel: usize = runs.values().map(|r| r.tuner.target()).sum();
+        let (unassigned, has_work, steals, in_flight) = {
+            let mut s = ctx.sched.lock().unwrap();
+            s.set_parallel(parallel.min(cfg.conns_total));
+            (s.unassigned(), s.has_work(), s.steals(), s.in_flight())
+        };
+        // Close to the end a new connection would still be in its handshake when the
+        // others finish; only connections that are already open take over tails then.
+        let nearly_done = unassigned == 0 && {
+            let rate = total_meter.rate(now);
+            rate > 0.0 && in_flight as f64 / rate < 4.0
         };
         let mut total_active: usize = runs.values().map(|r| r.shared.active.load(Ordering::Acquire)).sum();
         let mut budget = if unassigned > 0 {
             unassigned.div_ceil(ctx.cfg.sched.min_piece.max(1)).min(1024) as usize
         } else {
-            usize::from(has_work)
+            usize::from(has_work && !nearly_done)
         };
         let conns_total = if whole { 1 } else { cfg.conns_total };
         for id in &order {
@@ -1002,11 +1064,14 @@ pub async fn download(
         // ---- Finished? ----
         let final_size =
             size.or_else(|| Some(ctx.final_size.load(Ordering::Acquire)).filter(|s| *s != u64::MAX));
-        if (workers.is_empty() && ctx.sched.lock().unwrap().is_idle()
-            || final_size.is_some() && size.is_none() && workers.is_empty())
+        if ctx.sched.lock().unwrap().is_idle()
             && let Some(total) = final_size
         {
-            let missing = writer.done().complement(total);
+            // Every lease is closed. Wait for the disk thread to catch up before judging.
+            let missing = match writer.sync().await {
+                Ok(durable) => durable.complement(total),
+                Err(e) => break 'run Err(Error::Disk(e)),
+            };
             if missing.is_empty() {
                 break 'run Ok(Command::Run);
             }

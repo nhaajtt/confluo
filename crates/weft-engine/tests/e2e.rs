@@ -25,6 +25,7 @@ fn cfg() -> Config {
             min_steal: 64 * 1024,
             target_secs: 1.0,
             min_steal_eta_secs: 1.0,
+            equal_split: false,
             ..Default::default()
         },
         write_chunk: 64 * 1024,

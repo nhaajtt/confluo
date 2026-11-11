@@ -30,6 +30,10 @@ pub struct SchedConfig {
     pub min_steal: u64,
     /// A lease is only split when its holder needs at least this long to finish it.
     pub min_steal_eta_secs: f64,
+    /// Hand each connection an equal share of what is left instead of a time-sized
+    /// range. A share is one long uninterrupted response, which matters on long
+    /// paths: every new request restarts TCP slow start on the server.
+    pub equal_split: bool,
 }
 
 impl Default for SchedConfig {
@@ -38,11 +42,12 @@ impl Default for SchedConfig {
             // Every range costs the server a request, and some servers count requests.
             // Ranges are therefore long: a 100 MiB file takes around a dozen requests.
             min_piece: 1024 * 1024,
-            max_piece: 256 * 1024 * 1024,
+            max_piece: 1024 * 1024 * 1024,
             first_piece: 4 * 1024 * 1024,
             target_secs: 8.0,
             min_steal: 1024 * 1024,
             min_steal_eta_secs: 3.0,
+            equal_split: true,
         }
     }
 }
@@ -93,12 +98,14 @@ pub struct Scheduler {
     active: BTreeMap<u64, Active>,
     next_id: u64,
     steals: u64,
+    /// Connections expected to work on this download at the same time.
+    parallel: usize,
 }
 
 impl Scheduler {
     /// `pending` is every byte that still has to be fetched.
     pub fn new(cfg: SchedConfig, pending: RangeSet) -> Self {
-        Self { cfg, pending, active: BTreeMap::new(), next_id: 1, steals: 0 }
+        Self { cfg, pending, active: BTreeMap::new(), next_id: 1, steals: 0, parallel: 1 }
     }
 
     /// Bytes not yet assigned to any connection.
@@ -129,11 +136,20 @@ impl Scheduler {
         !self.pending.is_empty() || self.best_victim(0.0).is_some()
     }
 
+    /// Tells the scheduler how many connections the download is aiming for.
+    pub fn set_parallel(&mut self, n: usize) {
+        self.parallel = n.max(1);
+    }
+
     fn piece_for(&self, rate: f64) -> u64 {
-        if rate <= 0.0 {
-            return self.cfg.first_piece.min(self.cfg.max_piece).max(self.cfg.min_piece);
-        }
-        ((rate * self.cfg.target_secs) as u64).min(self.cfg.max_piece).max(self.cfg.min_piece)
+        let timed = if rate <= 0.0 { self.cfg.first_piece } else { (rate * self.cfg.target_secs) as u64 };
+        let share = if self.cfg.equal_split {
+            let waiting = self.parallel.saturating_sub(self.active.len()).max(1) as u64;
+            self.pending.total() / waiting
+        } else {
+            0
+        };
+        timed.max(share).min(self.cfg.max_piece).max(self.cfg.min_piece)
     }
 
     /// Gives the caller a range to fetch. `rate` is the caller's measured speed in bytes/s
@@ -151,12 +167,16 @@ impl Scheduler {
         Some(Lease { id, start, pos, end })
     }
 
-    fn best_victim(&self, _thief_rate: f64) -> Option<u64> {
+    fn best_victim(&self, thief_rate: f64) -> Option<u64> {
+        // A thief without a measured speed is a connection still starting up. It
+        // needs more time to become useful, so the bar for splitting is higher.
+        let min_eta =
+            if thief_rate > 0.0 { self.cfg.min_steal_eta_secs } else { self.cfg.min_steal_eta_secs * 2.0 };
         self.active
             .iter()
             .filter(|(_, a)| a.measured && a.remaining() >= 2 * self.cfg.min_steal.max(1))
             .map(|(id, a)| (*id, a.remaining() as f64 / a.rate.max(1.0)))
-            .filter(|(_, eta)| *eta >= self.cfg.min_steal_eta_secs)
+            .filter(|(_, eta)| *eta >= min_eta)
             .max_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(id, _)| id)
     }
@@ -168,10 +188,11 @@ impl Scheduler {
         let end = victim.end.load(Ordering::Acquire);
         let remaining = end.saturating_sub(pos);
         // The victim keeps a share proportional to its speed, so both finish together.
+        // A thief that has not shown a speed yet is assumed to manage half the victim's.
         let share = if thief_rate > 0.0 && victim.rate > 0.0 {
             victim.rate / (victim.rate + thief_rate)
         } else {
-            0.5
+            2.0 / 3.0
         };
         let keep =
             ((remaining as f64 * share) as u64).clamp(self.cfg.min_steal, remaining - self.cfg.min_steal);
@@ -228,6 +249,7 @@ mod tests {
             target_secs: 1.0,
             min_steal: 20,
             min_steal_eta_secs: 0.0,
+            equal_split: false,
         }
     }
 
@@ -253,6 +275,7 @@ mod tests {
         s.set_rate(a.id, 1000.0);
         let b = s.acquire(0.0).unwrap();
         assert_eq!(a.end(), b.start);
+        // The newcomer has no measured speed, so the holder keeps two thirds of what is left.
         assert_eq!((b.start, b.end()), (30, 50));
         assert_eq!(s.steals(), 1);
     }

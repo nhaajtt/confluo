@@ -126,7 +126,8 @@ impl Drop for Conn {
 }
 
 impl Conn {
-    async fn open(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) -> Result<Self> {
+    /// Opens a connection (TCP and, for https, TLS) without sending a request.
+    pub async fn open(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) -> Result<Self> {
         let origin = Origin::of(url)?;
         let addrs = resolve(url).await?;
         let (tcp, remote) = weft_net::connect_any(bind, &addrs, opts.connect_timeout).await?;

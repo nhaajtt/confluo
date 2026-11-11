@@ -5,7 +5,7 @@ use url::Url;
 use weft_net::BindSpec;
 
 use crate::error::{Error, Result};
-use crate::http::{self, Ask, RequestOptions};
+use crate::http::{self, Ask, Conn, RequestOptions};
 use crate::name;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +65,25 @@ fn advertised_sha256(resp: &hyper::Response<hyper::body::Incoming>) -> Option<St
 /// Probes `url` through `bind`. Uses a one-byte ranged GET rather than HEAD,
 /// because many file hosts answer HEAD differently from GET.
 pub async fn probe(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) -> Result<Probe> {
+    probe_keep(bind, url, opts).await.map(|(p, _)| p)
+}
+
+/// Reads a (tiny) response body to its end so the connection can be used again.
+async fn drain(resp: hyper::Response<hyper::body::Incoming>) -> bool {
+    use http_body_util::BodyExt;
+    matches!(
+        tokio::time::timeout(std::time::Duration::from_secs(2), resp.into_body().collect()).await,
+        Ok(Ok(_))
+    )
+}
+
+/// Like [`probe`], and also hands back the connection it used when that connection
+/// is still good, so the first range request does not pay for a second handshake.
+pub async fn probe_keep(
+    bind: Option<&BindSpec>,
+    url: &Url,
+    opts: &RequestOptions,
+) -> Result<(Probe, Option<Conn>)> {
     let mut slot = None;
     let ask = Ask { range: Some((0, Some(0))), if_range: None };
     let mut fetched = http::get(&mut slot, bind, url, opts, &ask).await?;
@@ -95,7 +114,7 @@ pub async fn probe(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) ->
             http::header_str(resp, "content-range").and_then(|v| v.rsplit('/').next()?.trim().parse().ok());
         if total == Some(0u64) {
             out.size = Some(0);
-            return Ok(out);
+            return Ok((out, None));
         }
     }
     http::check_status(resp)?;
@@ -111,17 +130,28 @@ pub async fn probe(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) ->
     } else {
         out.size = http::content_length(resp);
     }
-    if out.ranges && out.etag.is_some() && out.size.is_some_and(|s| s > 1) {
+    if !out.ranges {
+        // The whole file is on its way on this connection; it cannot be reused.
+        return Ok((out, None));
+    }
+    if !drain(fetched.response).await {
+        slot = None;
+    }
+    if out.etag.is_some() && out.size.is_some_and(|s| s > 1) {
         // Some servers compute an ETag per range. Comparing those across requests
         // would look like the file changing, so such ETags are ignored.
-        drop(fetched);
-        slot = None;
         let ask = Ask { range: Some((1, Some(1))), if_range: None };
-        if let Ok(second) = http::get(&mut slot, bind, &out.url, opts, &ask).await
-            && strong_etag(http::header_str(&second.response, "etag")) != out.etag
-        {
-            out.etag = None;
+        match http::get(&mut slot, bind, &out.url, opts, &ask).await {
+            Ok(second) => {
+                if strong_etag(http::header_str(&second.response, "etag")) != out.etag {
+                    out.etag = None;
+                }
+                if !drain(second.response).await {
+                    slot = None;
+                }
+            }
+            Err(_) => slot = None,
         }
     }
-    Ok(out)
+    Ok((out, slot))
 }
