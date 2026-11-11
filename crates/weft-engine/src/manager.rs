@@ -227,7 +227,7 @@ impl Manager {
         std::fs::create_dir_all(state_dir)?;
         let file = state_dir.join("downloads.json");
         let on_disk = std::fs::read(&file).ok();
-        let parsed: Option<Saved> = on_disk.as_deref().and_then(|b| serde_json::from_slice(&b).ok());
+        let parsed: Option<Saved> = on_disk.as_deref().and_then(|b| serde_json::from_slice(b).ok());
         if parsed.is_none() && on_disk.is_some_and(|b| !b.is_empty()) {
             // An unreadable list is set aside, not overwritten: it may still be repaired by hand.
             let _ = std::fs::rename(&file, file.with_extension("json.unreadable"));

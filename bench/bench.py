@@ -31,6 +31,7 @@ WEFT_APP = REL / "weft-app.exe"
 TESTSRV = REL / "weft-testsrv.exe"
 BASELINE_DRIVER = ROOT / "ref" / "baseline-drive.mjs"
 MIB = 1 << 20
+APP_TIMEOUT = int(os.environ.get("WEFT_BENCH_APP_TIMEOUT", "900"))
 
 SCENARIOS = {
     # name: (size, server flags, what it shows)
@@ -177,13 +178,16 @@ def run_weft_app(url: str, out: Path) -> dict:
             data=json.dumps({"url": url}).encode(),
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
-        deadline = time.time() + 900
+        deadline = time.time() + APP_TIMEOUT
         item = None
+        seen = None
         while time.time() < deadline:
             try:
                 items = json.loads((state / "downloads.json").read_text()).get("items", [])
             except (OSError, ValueError):
                 items = []
+            if items:
+                seen = items[0]
             if items and items[0]["status"] in ("completed", "failed"):
                 item = items[0]
                 break
@@ -191,7 +195,11 @@ def run_weft_app(url: str, out: Path) -> dict:
         seconds = time.perf_counter() - t0
         cpu, rss = mon.stop()
         if not item or item["status"] != "completed":
-            return {"ok": False, "error": (item or {}).get("error", "timed out")}
+            if item:
+                return {"ok": False, "error": item.get("error") or "failed"}
+            # Say where it stood, so a hang can be told from a slow run.
+            where = f"{seen['status']} at {seen.get('done')} of {seen.get('size')}" if seen else "never listed"
+            return {"ok": False, "error": f"timed out after {APP_TIMEOUT} s ({where})"}
         return {"ok": True, "seconds": seconds, "bytes": item["size"], "cpu_seconds": cpu, "peak_rss": rss, "startup_seconds": startup}
     finally:
         kill_tree(p.pid)

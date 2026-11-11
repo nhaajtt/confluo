@@ -1,0 +1,1803 @@
+{
+ "when": "2026-11-11 03:55:23",
+ "machine": {
+  "cpu": 32,
+  "ram_gib": 32
+ },
+ "runs": 7,
+ "scenarios": {
+  "unlimited": {
+   "about": "local server, no limit: engine and disk overhead",
+   "size": "1g",
+   "subjects": {
+    "weft-cli": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 1.6601569999999999,
+      "seconds_min": 1.4441245999999999,
+      "seconds_max": 1.8588797000000001,
+      "seconds_mean": 1.6260295857142857,
+      "seconds_stdev": 0.15368936407172565,
+      "seconds_ci95": 0.1421440754128125,
+      "mib_per_sec": 616.8091331121093,
+      "cpu_seconds": 1.703125,
+      "peak_rss_mib": 47.83984375,
+      "startup_seconds": null,
+      "server_requests": 42,
+      "server_peak_connections": 8,
+      "overhead_percent": 0.38308193907141685
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 1.8588797000000001,
+       "process_seconds": 1.9712564000219572,
+       "bytes": 1073741824,
+       "cpu_seconds": 2.265625,
+       "peak_rss": 50925568,
+       "server_requests": 41,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.38308193907141685
+      },
+      {
+       "ok": true,
+       "seconds": 1.6601569999999999,
+       "process_seconds": 1.6887260999938007,
+       "bytes": 1073741824,
+       "cpu_seconds": 2.078125,
+       "peak_rss": 49188864,
+       "server_requests": 42,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.7181348279118538
+      },
+      {
+       "ok": true,
+       "seconds": 1.7281480999999999,
+       "process_seconds": 1.7567703000095207,
+       "bytes": 1073741824,
+       "cpu_seconds": 1.65625,
+       "peak_rss": 51585024,
+       "server_requests": 42,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.3250665031373501
+      },
+      {
+       "ok": true,
+       "seconds": 1.4441245999999999,
+       "process_seconds": 1.4735864000103902,
+       "bytes": 1073741824,
+       "cpu_seconds": 1.546875,
+       "peak_rss": 50274304,
+       "server_requests": 38,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.5170928314328194
+      },
+      {
+       "ok": true,
+       "seconds": 1.5345947,
+       "process_seconds": 1.5687500000058208,
+       "bytes": 1073741824,
+       "cpu_seconds": 1.5625,
+       "peak_rss": 50163712,
+       "server_requests": 44,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.8248367346823215
+      },
+      {
+       "ok": true,
+       "seconds": 1.7003728,
+       "process_seconds": 1.7295469999953639,
+       "bytes": 1073741824,
+       "cpu_seconds": 2.265625,
+       "peak_rss": 50003968,
+       "server_requests": 41,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.35509606823325157
+      },
+      {
+       "ok": true,
+       "seconds": 1.4559302,
+       "process_seconds": 1.4845848999975715,
+       "bytes": 1073741824,
+       "cpu_seconds": 1.703125,
+       "peak_rss": 48979968,
+       "server_requests": 42,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.2798604778945446
+      }
+     ]
+    },
+    "weft-app": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 1.696302399999695,
+      "seconds_min": 1.5069063000264578,
+      "seconds_max": 1.7244051999878138,
+      "seconds_mean": 1.669232057141406,
+      "seconds_stdev": 0.07357030295826235,
+      "seconds_ci95": 0.06804363304517436,
+      "mib_per_sec": 603.6659501278688,
+      "cpu_seconds": 3.453125,
+      "peak_rss_mib": 394.59375,
+      "startup_seconds": 0.5420979999762494,
+      "server_requests": 42,
+      "server_peak_connections": 8,
+      "overhead_percent": 0.5096936598420143
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 1.696302399999695,
+       "bytes": 1073741824,
+       "cpu_seconds": 3.5,
+       "peak_rss": 413757440,
+       "startup_seconds": 0.7248423999990337,
+       "server_requests": 42,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.44113146141171455
+      },
+      {
+       "ok": true,
+       "seconds": 1.5069063000264578,
+       "bytes": 1073741824,
+       "cpu_seconds": 3.15625,
+       "peak_rss": 411488256,
+       "startup_seconds": 0.5339619000151288,
+       "server_requests": 42,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.7542666047811508
+      },
+      {
+       "ok": true,
+       "seconds": 1.7040906999900471,
+       "bytes": 1073741824,
+       "cpu_seconds": 3.65625,
+       "peak_rss": 415424512,
+       "startup_seconds": 0.5309018999978434,
+       "server_requests": 41,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.26276493445038795
+      },
+      {
+       "ok": true,
+       "seconds": 1.7016179999918677,
+       "bytes": 1073741824,
+       "cpu_seconds": 3.453125,
+       "peak_rss": 414302208,
+       "startup_seconds": 0.5336709999828599,
+       "server_requests": 43,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.5603806115686893
+      },
+      {
+       "ok": true,
+       "seconds": 1.7244051999878138,
+       "bytes": 1073741824,
+       "cpu_seconds": 3.171875,
+       "peak_rss": 413003776,
+       "startup_seconds": 0.5425716000027023,
+       "server_requests": 44,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.5170213989913464
+      },
+      {
+       "ok": true,
+       "seconds": 1.6767973999958485,
+       "bytes": 1073741824,
+       "cpu_seconds": 3.46875,
+       "peak_rss": 414728192,
+       "startup_seconds": 0.5454897999879904,
+       "server_requests": 42,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.2813017927110195
+      },
+      {
+       "ok": true,
+       "seconds": 1.6745043999981135,
+       "bytes": 1073741824,
+       "cpu_seconds": 3.25,
+       "peak_rss": 413761536,
+       "startup_seconds": 0.5420979999762494,
+       "server_requests": 44,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.5096936598420143
+      }
+     ]
+    },
+    "baseline": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 6.364,
+      "seconds_min": 5.942,
+      "seconds_max": 6.703,
+      "seconds_mean": 6.309571428571429,
+      "seconds_stdev": 0.2787584720045039,
+      "seconds_ci95": 0.2578178750747932,
+      "mib_per_sec": 160.9050911376493,
+      "cpu_seconds": 23.5,
+      "peak_rss_mib": 660.859375,
+      "startup_seconds": 0.592,
+      "server_requests": 202,
+      "server_peak_connections": 8,
+      "overhead_percent": 0.7160262204706669
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 6.703,
+       "bytes": 1073741824,
+       "cpu_seconds": 25.4375,
+       "peak_rss": 692961280,
+       "startup_seconds": 1.485,
+       "server_requests": 202,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.7160338573157787
+      },
+      {
+       "ok": true,
+       "seconds": 5.942,
+       "bytes": 1073741824,
+       "cpu_seconds": 23.28125,
+       "peak_rss": 685215744,
+       "startup_seconds": 0.622,
+       "server_requests": 202,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.7160262204706669
+      },
+      {
+       "ok": true,
+       "seconds": 6.364,
+       "bytes": 1073741824,
+       "cpu_seconds": 23.75,
+       "peak_rss": 704065536,
+       "startup_seconds": 0.576,
+       "server_requests": 201,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.5909247323870659
+      },
+      {
+       "ok": true,
+       "seconds": 6.541,
+       "bytes": 1073741824,
+       "cpu_seconds": 24.671875,
+       "peak_rss": 693768192,
+       "startup_seconds": 0.601,
+       "server_requests": 202,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.6453311070799828
+      },
+      {
+       "ok": true,
+       "seconds": 6.176,
+       "bytes": 1073741824,
+       "cpu_seconds": 23.5,
+       "peak_rss": 692838400,
+       "startup_seconds": 0.592,
+       "server_requests": 201,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.4799850285053253
+      },
+      {
+       "ok": true,
+       "seconds": 6.013,
+       "bytes": 1073741824,
+       "cpu_seconds": 22.046875,
+       "peak_rss": 699772928,
+       "startup_seconds": 0.55,
+       "server_requests": 202,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.7328314706683159
+      },
+      {
+       "ok": true,
+       "seconds": 6.428,
+       "bytes": 1073741824,
+       "cpu_seconds": 22.796875,
+       "peak_rss": 691785728,
+       "startup_seconds": 0.556,
+       "server_requests": 202,
+       "server_peak_connections": 8,
+       "overhead_percent": 0.7175635546445847
+      }
+     ]
+    }
+   }
+  },
+  "per-connection-cap": {
+   "about": "server caps each connection at 1 MiB/s",
+   "size": "200m",
+   "subjects": {
+    "weft-cli": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 7.2997059,
+      "seconds_min": 7.286119,
+      "seconds_max": 7.3184733,
+      "seconds_mean": 7.298901271428571,
+      "seconds_stdev": 0.010664137729592274,
+      "seconds_ci95": 0.009863037737213554,
+      "mib_per_sec": 27.398364090257388,
+      "cpu_seconds": 0.578125,
+      "peak_rss_mib": 23.30078125,
+      "startup_seconds": null,
+      "server_requests": 82,
+      "server_peak_connections": 38,
+      "overhead_percent": 0.10515356063842773
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 7.2997059,
+       "process_seconds": 7.339108900021529,
+       "bytes": 209715200,
+       "cpu_seconds": 1.609375,
+       "peak_rss": 24444928,
+       "server_requests": 80,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.15960121154785156
+      },
+      {
+       "ok": true,
+       "seconds": 7.2948197,
+       "process_seconds": 7.334631000005174,
+       "bytes": 209715200,
+       "cpu_seconds": 0.578125,
+       "peak_rss": 24432640,
+       "server_requests": 82,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.1327223777770996
+      },
+      {
+       "ok": true,
+       "seconds": 7.286119,
+       "process_seconds": 7.314445099997101,
+       "bytes": 209715200,
+       "cpu_seconds": 0.265625,
+       "peak_rss": 23945216,
+       "server_requests": 80,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.08267593383789062
+      },
+      {
+       "ok": true,
+       "seconds": 7.3011221,
+       "process_seconds": 7.3276826000073925,
+       "bytes": 209715200,
+       "cpu_seconds": 0.390625,
+       "peak_rss": 24735744,
+       "server_requests": 83,
+       "server_peak_connections": 36,
+       "overhead_percent": 0.10515356063842773
+      },
+      {
+       "ok": true,
+       "seconds": 7.2890625,
+       "process_seconds": 7.322550699987914,
+       "bytes": 209715200,
+       "cpu_seconds": 0.890625,
+       "peak_rss": 24432640,
+       "server_requests": 80,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.1183633804321289
+      },
+      {
+       "ok": true,
+       "seconds": 7.3030064,
+       "process_seconds": 7.336686999973608,
+       "bytes": 209715200,
+       "cpu_seconds": 0.65625,
+       "peak_rss": 24387584,
+       "server_requests": 82,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.1049346923828125
+      },
+      {
+       "ok": true,
+       "seconds": 7.3184733,
+       "process_seconds": 7.349660599982599,
+       "bytes": 209715200,
+       "cpu_seconds": 0.484375,
+       "peak_rss": 24305664,
+       "server_requests": 86,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.09283828735351562
+      }
+     ]
+    },
+    "weft-app": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 7.31724609999219,
+      "seconds_min": 7.2936315999832,
+      "seconds_max": 7.347612100013066,
+      "seconds_mean": 7.318385171421271,
+      "seconds_stdev": 0.017926336189423703,
+      "seconds_ci95": 0.016579693061880868,
+      "mib_per_sec": 27.332687361740298,
+      "cpu_seconds": 2.453125,
+      "peak_rss_mib": 369.42578125,
+      "startup_seconds": 0.5409933000046294,
+      "server_requests": 83,
+      "server_peak_connections": 38,
+      "overhead_percent": 0.11253929138183594
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 7.3207852999912575,
+       "bytes": 209715200,
+       "cpu_seconds": 2.46875,
+       "peak_rss": 385466368,
+       "startup_seconds": 0.5380742000124883,
+       "server_requests": 84,
+       "server_peak_connections": 39,
+       "overhead_percent": 0.1365647315979004
+      },
+      {
+       "ok": true,
+       "seconds": 7.3336401999986265,
+       "bytes": 209715200,
+       "cpu_seconds": 1.8125,
+       "peak_rss": 388186112,
+       "startup_seconds": 0.540004799986491,
+       "server_requests": 83,
+       "server_peak_connections": 37,
+       "overhead_percent": 0.1609048843383789
+      },
+      {
+       "ok": true,
+       "seconds": 7.308637499983888,
+       "bytes": 209715200,
+       "cpu_seconds": 2.453125,
+       "peak_rss": 388734976,
+       "startup_seconds": 0.5409933000046294,
+       "server_requests": 80,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.10440969467163086
+      },
+      {
+       "ok": true,
+       "seconds": 7.347612100013066,
+       "bytes": 209715200,
+       "cpu_seconds": 2.609375,
+       "peak_rss": 387371008,
+       "startup_seconds": 0.5440812000015285,
+       "server_requests": 85,
+       "server_peak_connections": 36,
+       "overhead_percent": 0.09977865219116211
+      },
+      {
+       "ok": true,
+       "seconds": 7.2936315999832,
+       "bytes": 209715200,
+       "cpu_seconds": 2.515625,
+       "peak_rss": 386371584,
+       "startup_seconds": 0.5476399000035599,
+       "server_requests": 83,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.14153480529785156
+      },
+      {
+       "ok": true,
+       "seconds": 7.31724609999219,
+       "bytes": 209715200,
+       "cpu_seconds": 1.984375,
+       "peak_rss": 390672384,
+       "startup_seconds": 0.5318483999872115,
+       "server_requests": 85,
+       "server_peak_connections": 37,
+       "overhead_percent": 0.10962486267089844
+      },
+      {
+       "ok": true,
+       "seconds": 7.307143399986671,
+       "bytes": 209715200,
+       "cpu_seconds": 1.890625,
+       "peak_rss": 387252224,
+       "startup_seconds": 0.5526668999809772,
+       "server_requests": 82,
+       "server_peak_connections": 38,
+       "overhead_percent": 0.11253929138183594
+      }
+     ]
+    },
+    "baseline": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 7.483,
+      "seconds_min": 7.451,
+      "seconds_max": 7.549,
+      "seconds_mean": 7.497571428571428,
+      "seconds_stdev": 0.039084767462773375,
+      "seconds_ci95": 0.036148683204440285,
+      "mib_per_sec": 26.727248429774157,
+      "cpu_seconds": 22.9375,
+      "peak_rss_mib": 690.81640625,
+      "startup_seconds": 0.586,
+      "server_requests": 206,
+      "server_peak_connections": 32,
+      "overhead_percent": 0.04689168930053711
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 7.483,
+       "bytes": 209715200,
+       "cpu_seconds": 23.0,
+       "peak_rss": 715534336,
+       "startup_seconds": 0.561,
+       "server_requests": 210,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.07033014297485352
+      },
+      {
+       "ok": true,
+       "seconds": 7.463,
+       "bytes": 209715200,
+       "cpu_seconds": 24.25,
+       "peak_rss": 728600576,
+       "startup_seconds": 0.589,
+       "server_requests": 206,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.03387117385864258
+      },
+      {
+       "ok": true,
+       "seconds": 7.521,
+       "bytes": 209715200,
+       "cpu_seconds": 21.921875,
+       "peak_rss": 728125440,
+       "startup_seconds": 0.584,
+       "server_requests": 205,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.032568931579589844
+      },
+      {
+       "ok": true,
+       "seconds": 7.451,
+       "bytes": 209715200,
+       "cpu_seconds": 21.6875,
+       "peak_rss": 724373504,
+       "startup_seconds": 0.591,
+       "server_requests": 208,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.05258893966674805
+      },
+      {
+       "ok": true,
+       "seconds": 7.549,
+       "bytes": 209715200,
+       "cpu_seconds": 24.578125,
+       "peak_rss": 721702912,
+       "startup_seconds": 0.586,
+       "server_requests": 204,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.01612997055053711
+      },
+      {
+       "ok": true,
+       "seconds": 7.541,
+       "bytes": 209715200,
+       "cpu_seconds": 22.9375,
+       "peak_rss": 720117760,
+       "startup_seconds": 0.573,
+       "server_requests": 207,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.04689216613769531
+      },
+      {
+       "ok": true,
+       "seconds": 7.475,
+       "bytes": 209715200,
+       "cpu_seconds": 22.796875,
+       "peak_rss": 726847488,
+       "startup_seconds": 0.613,
+       "server_requests": 204,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.04689168930053711
+      }
+     ]
+    }
+   }
+  },
+  "link-cap": {
+   "about": "one 20 MiB/s bottleneck shared by all connections",
+   "size": "200m",
+   "subjects": {
+    "weft-cli": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 10.286046,
+      "seconds_min": 10.2701967,
+      "seconds_max": 10.3081645,
+      "seconds_mean": 10.285016742857142,
+      "seconds_stdev": 0.01259361318431666,
+      "seconds_ci95": 0.011647569192594662,
+      "mib_per_sec": 19.443817381333893,
+      "cpu_seconds": 0.34375,
+      "peak_rss_mib": 18.4921875,
+      "startup_seconds": null,
+      "server_requests": 33,
+      "server_peak_connections": 16,
+      "overhead_percent": 0.4211902618408203
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 10.2701967,
+       "process_seconds": 10.304262499994365,
+       "bytes": 209715200,
+       "cpu_seconds": 0.171875,
+       "peak_rss": 19439616,
+       "server_requests": 32,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.275571346282959
+      },
+      {
+       "ok": true,
+       "seconds": 10.3081645,
+       "process_seconds": 10.339446300000418,
+       "bytes": 209715200,
+       "cpu_seconds": 0.1875,
+       "peak_rss": 19542016,
+       "server_requests": 32,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.4211902618408203
+      },
+      {
+       "ok": true,
+       "seconds": 10.2780016,
+       "process_seconds": 10.309006499999668,
+       "bytes": 209715200,
+       "cpu_seconds": 0.34375,
+       "peak_rss": 18731008,
+       "server_requests": 34,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.42463254928588867
+      },
+      {
+       "ok": true,
+       "seconds": 10.2864439,
+       "process_seconds": 10.315860500006238,
+       "bytes": 209715200,
+       "cpu_seconds": 0.609375,
+       "peak_rss": 19771392,
+       "server_requests": 37,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.4694805145263672
+      },
+      {
+       "ok": true,
+       "seconds": 10.286046,
+       "process_seconds": 10.315325000003213,
+       "bytes": 209715200,
+       "cpu_seconds": 0.859375,
+       "peak_rss": 18956288,
+       "server_requests": 35,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.4452357292175293
+      },
+      {
+       "ok": true,
+       "seconds": 10.2914006,
+       "process_seconds": 10.320137900009286,
+       "bytes": 209715200,
+       "cpu_seconds": 0.875,
+       "peak_rss": 18927616,
+       "server_requests": 29,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.3087444305419922
+      },
+      {
+       "ok": true,
+       "seconds": 10.2748639,
+       "process_seconds": 10.303337499994086,
+       "bytes": 209715200,
+       "cpu_seconds": 0.234375,
+       "peak_rss": 19390464,
+       "server_requests": 33,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.30365848541259766
+      }
+     ]
+    },
+    "weft-app": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 10.29703950000112,
+      "seconds_min": 10.289566099992953,
+      "seconds_max": 10.32235960001708,
+      "seconds_mean": 10.300680000002362,
+      "seconds_stdev": 0.01127035144172997,
+      "seconds_ci95": 0.010423712108760612,
+      "mib_per_sec": 19.423058443155263,
+      "cpu_seconds": 2.1875,
+      "peak_rss_mib": 363.578125,
+      "startup_seconds": 0.5480544999882113,
+      "server_requests": 32,
+      "server_peak_connections": 16,
+      "overhead_percent": 0.39673900604248047
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 10.289566099992953,
+       "bytes": 209715200,
+       "cpu_seconds": 2.671875,
+       "peak_rss": 381239296,
+       "startup_seconds": 0.5413203999924008,
+       "server_requests": 32,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.30333375930786133
+      },
+      {
+       "ok": true,
+       "seconds": 10.29703950000112,
+       "bytes": 209715200,
+       "cpu_seconds": 2.0625,
+       "peak_rss": 381108224,
+       "startup_seconds": 0.5495622000016738,
+       "server_requests": 33,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.3941535949707031
+      },
+      {
+       "ok": true,
+       "seconds": 10.307429099979345,
+       "bytes": 209715200,
+       "cpu_seconds": 2.1875,
+       "peak_rss": 384000000,
+       "startup_seconds": 0.5587536999955773,
+       "server_requests": 37,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.45716285705566406
+      },
+      {
+       "ok": true,
+       "seconds": 10.2911644000269,
+       "bytes": 209715200,
+       "cpu_seconds": 1.890625,
+       "peak_rss": 381075456,
+       "startup_seconds": 0.5334367999748792,
+       "server_requests": 32,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.4376368522644043
+      },
+      {
+       "ok": true,
+       "seconds": 10.296298100001877,
+       "bytes": 209715200,
+       "cpu_seconds": 1.921875,
+       "peak_rss": 384061440,
+       "startup_seconds": 0.5597106000059284,
+       "server_requests": 32,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.3364405632019043
+      },
+      {
+       "ok": true,
+       "seconds": 10.32235960001708,
+       "bytes": 209715200,
+       "cpu_seconds": 2.71875,
+       "peak_rss": 383627264,
+       "startup_seconds": 0.5411666999862064,
+       "server_requests": 31,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.39673900604248047
+      },
+      {
+       "ok": true,
+       "seconds": 10.300903199997265,
+       "bytes": 209715200,
+       "cpu_seconds": 2.1875,
+       "peak_rss": 380850176,
+       "startup_seconds": 0.5480544999882113,
+       "server_requests": 32,
+       "server_peak_connections": 16,
+       "overhead_percent": 0.41997766494750977
+      }
+     ]
+    },
+    "baseline": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 10.157,
+      "seconds_min": 10.091,
+      "seconds_max": 10.188,
+      "seconds_mean": 10.143428571428572,
+      "seconds_stdev": 0.03729100491565062,
+      "seconds_ci95": 0.03448966977621177,
+      "mib_per_sec": 19.690853598503494,
+      "cpu_seconds": 30.453125,
+      "peak_rss_mib": 690.1015625,
+      "startup_seconds": 0.555,
+      "server_requests": 203,
+      "server_peak_connections": 32,
+      "overhead_percent": 0.10695028305053711
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 10.188,
+       "bytes": 209715200,
+       "cpu_seconds": 30.46875,
+       "peak_rss": 723623936,
+       "startup_seconds": 0.54,
+       "server_requests": 204,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.08351278305053711
+      },
+      {
+       "ok": true,
+       "seconds": 10.17,
+       "bytes": 209715200,
+       "cpu_seconds": 30.421875,
+       "peak_rss": 734081024,
+       "startup_seconds": 0.554,
+       "server_requests": 204,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.10695028305053711
+      },
+      {
+       "ok": true,
+       "seconds": 10.144,
+       "bytes": 209715200,
+       "cpu_seconds": 30.859375,
+       "peak_rss": 717996032,
+       "startup_seconds": 0.6,
+       "server_requests": 203,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.10955429077148438
+      },
+      {
+       "ok": true,
+       "seconds": 10.16,
+       "bytes": 209715200,
+       "cpu_seconds": 30.453125,
+       "peak_rss": 718577664,
+       "startup_seconds": 0.603,
+       "server_requests": 202,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.15122079849243164
+      },
+      {
+       "ok": true,
+       "seconds": 10.091,
+       "bytes": 209715200,
+       "cpu_seconds": 30.109375,
+       "peak_rss": 721326080,
+       "startup_seconds": 0.553,
+       "server_requests": 203,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.10955429077148438
+      },
+      {
+       "ok": true,
+       "seconds": 10.157,
+       "bytes": 209715200,
+       "cpu_seconds": 30.65625,
+       "peak_rss": 731164672,
+       "startup_seconds": 0.555,
+       "server_requests": 204,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.06398153305053711
+      },
+      {
+       "ok": true,
+       "seconds": 10.094,
+       "bytes": 209715200,
+       "cpu_seconds": 29.234375,
+       "peak_rss": 726138880,
+       "startup_seconds": 0.572,
+       "server_requests": 203,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.039241790771484375
+      }
+     ]
+    }
+   }
+  },
+  "no-range": {
+   "about": "server without Range support",
+   "size": "200m",
+   "subjects": {
+    "weft-cli": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 5.167201,
+      "seconds_min": 5.1483959,
+      "seconds_max": 5.1839291,
+      "seconds_mean": 5.168076371428572,
+      "seconds_stdev": 0.010695216920305268,
+      "seconds_ci95": 0.009891782230075242,
+      "mib_per_sec": 38.70567450346909,
+      "cpu_seconds": 0.34375,
+      "peak_rss_mib": 11.30859375,
+      "startup_seconds": null,
+      "server_requests": 1,
+      "server_peak_connections": 1,
+      "overhead_percent": 0.0
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 5.1839291,
+       "process_seconds": 5.214073799987091,
+       "bytes": 209715200,
+       "cpu_seconds": 0.6875,
+       "peak_rss": 11612160,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.1704722,
+       "process_seconds": 5.199757800000953,
+       "bytes": 209715200,
+       "cpu_seconds": 0.1875,
+       "peak_rss": 12292096,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.1669102,
+       "process_seconds": 5.198497100005625,
+       "bytes": 209715200,
+       "cpu_seconds": 0.34375,
+       "peak_rss": 11763712,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.167201,
+       "process_seconds": 5.2008849999983795,
+       "bytes": 209715200,
+       "cpu_seconds": 0.140625,
+       "peak_rss": 11857920,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.1657023,
+       "process_seconds": 5.1956748999946285,
+       "bytes": 209715200,
+       "cpu_seconds": 0.265625,
+       "peak_rss": 11980800,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.1483959,
+       "process_seconds": 5.176311400020495,
+       "bytes": 209715200,
+       "cpu_seconds": 0.53125,
+       "peak_rss": 12079104,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.1739239,
+       "process_seconds": 5.200588099978631,
+       "bytes": 209715200,
+       "cpu_seconds": 0.5625,
+       "peak_rss": 11419648,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      }
+     ]
+    },
+    "weft-app": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 5.1793553000024986,
+      "seconds_min": 5.168143299990334,
+      "seconds_max": 5.213197200006107,
+      "seconds_mean": 5.187335928569415,
+      "seconds_stdev": 0.016763919756609978,
+      "seconds_ci95": 0.015504598437832225,
+      "mib_per_sec": 38.614844592705104,
+      "cpu_seconds": 2.046875,
+      "peak_rss_mib": 357.640625,
+      "startup_seconds": 0.5356749000202399,
+      "server_requests": 1,
+      "server_peak_connections": 1,
+      "overhead_percent": 0.0
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 5.193122899974696,
+       "bytes": 209715200,
+       "cpu_seconds": 1.546875,
+       "peak_rss": 376475648,
+       "startup_seconds": 0.5302230000088457,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.175311800005147,
+       "bytes": 209715200,
+       "cpu_seconds": 2.15625,
+       "peak_rss": 373297152,
+       "startup_seconds": 0.5408545000245795,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.168143299990334,
+       "bytes": 209715200,
+       "cpu_seconds": 2.046875,
+       "peak_rss": 376594432,
+       "startup_seconds": 0.5425232000125106,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.204872000002069,
+       "bytes": 209715200,
+       "cpu_seconds": 1.953125,
+       "peak_rss": 375013376,
+       "startup_seconds": 0.5356749000202399,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.213197200006107,
+       "bytes": 209715200,
+       "cpu_seconds": 1.609375,
+       "peak_rss": 373223424,
+       "startup_seconds": 0.5444565999787301,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.1773490000050515,
+       "bytes": 209715200,
+       "cpu_seconds": 2.328125,
+       "peak_rss": 376037376,
+       "startup_seconds": 0.5344361999887042,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 5.1793553000024986,
+       "bytes": 209715200,
+       "cpu_seconds": 2.09375,
+       "peak_rss": 374964224,
+       "startup_seconds": 0.5304636000073515,
+       "server_requests": 1,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.0
+      }
+     ]
+    },
+    "baseline": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 5.293,
+      "seconds_min": 5.261,
+      "seconds_max": 5.349,
+      "seconds_mean": 5.299428571428572,
+      "seconds_stdev": 0.0348943985135014,
+      "seconds_ci95": 0.03227309868673193,
+      "mib_per_sec": 37.78575477045154,
+      "cpu_seconds": 14.125,
+      "peak_rss_mib": 596.11328125,
+      "startup_seconds": 0.577,
+      "server_requests": 2,
+      "server_peak_connections": 1,
+      "overhead_percent": 0.2734375
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 5.293,
+       "bytes": 209715200,
+       "cpu_seconds": 13.28125,
+       "peak_rss": 631975936,
+       "startup_seconds": 0.589,
+       "server_requests": 2,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.2734375
+      },
+      {
+       "ok": true,
+       "seconds": 5.296,
+       "bytes": 209715200,
+       "cpu_seconds": 14.96875,
+       "peak_rss": 624984064,
+       "startup_seconds": 0.565,
+       "server_requests": 2,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.2734375
+      },
+      {
+       "ok": true,
+       "seconds": 5.346,
+       "bytes": 209715200,
+       "cpu_seconds": 14.3125,
+       "peak_rss": 620687360,
+       "startup_seconds": 0.557,
+       "server_requests": 2,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.421875
+      },
+      {
+       "ok": true,
+       "seconds": 5.274,
+       "bytes": 209715200,
+       "cpu_seconds": 13.9375,
+       "peak_rss": 625016832,
+       "startup_seconds": 0.591,
+       "server_requests": 2,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.2734375
+      },
+      {
+       "ok": true,
+       "seconds": 5.349,
+       "bytes": 209715200,
+       "cpu_seconds": 13.890625,
+       "peak_rss": 625496064,
+       "startup_seconds": 0.577,
+       "server_requests": 2,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.2578125
+      },
+      {
+       "ok": true,
+       "seconds": 5.277,
+       "bytes": 209715200,
+       "cpu_seconds": 14.140625,
+       "peak_rss": 625291264,
+       "startup_seconds": 0.577,
+       "server_requests": 2,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.2734375
+      },
+      {
+       "ok": true,
+       "seconds": 5.261,
+       "bytes": 209715200,
+       "cpu_seconds": 14.125,
+       "peak_rss": 625070080,
+       "startup_seconds": 0.593,
+       "server_requests": 2,
+       "server_peak_connections": 1,
+       "overhead_percent": 0.2421875
+      }
+     ]
+    }
+   }
+  },
+  "busy-server": {
+   "about": "server allows 4 connections, 2 MiB/s each",
+   "size": "200m",
+   "subjects": {
+    "weft-cli": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 25.5273329,
+      "seconds_min": 25.518651,
+      "seconds_max": 26.0293491,
+      "seconds_mean": 25.62961477142857,
+      "seconds_stdev": 0.19752550799008053,
+      "seconds_ci95": 0.18268720723310913,
+      "mib_per_sec": 7.8347393667593055,
+      "cpu_seconds": 0.609375,
+      "peak_rss_mib": 12.02734375,
+      "startup_seconds": null,
+      "server_requests": 25,
+      "server_peak_connections": 6,
+      "overhead_percent": 0.02308368682861328
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 25.5188122,
+       "process_seconds": 25.546908299991628,
+       "bytes": 209715200,
+       "cpu_seconds": 0.796875,
+       "peak_rss": 12611584,
+       "server_requests": 26,
+       "server_peak_connections": 6,
+       "overhead_percent": 0.019245624542236328
+      },
+      {
+       "ok": true,
+       "seconds": 25.522903499999998,
+       "process_seconds": 25.55208940000739,
+       "bytes": 209715200,
+       "cpu_seconds": 0.390625,
+       "peak_rss": 12951552,
+       "server_requests": 25,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.01319265365600586
+      },
+      {
+       "ok": true,
+       "seconds": 25.518651,
+       "process_seconds": 25.548024000017904,
+       "bytes": 209715200,
+       "cpu_seconds": 0.609375,
+       "peak_rss": 12206080,
+       "server_requests": 25,
+       "server_peak_connections": 6,
+       "overhead_percent": 0.031401634216308594
+      },
+      {
+       "ok": true,
+       "seconds": 26.0293491,
+       "process_seconds": 26.053710600011982,
+       "bytes": 209715200,
+       "cpu_seconds": 0.515625,
+       "peak_rss": 12554240,
+       "server_requests": 26,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.025413990020751953
+      },
+      {
+       "ok": true,
+       "seconds": 25.5281015,
+       "process_seconds": 25.5560484000016,
+       "bytes": 209715200,
+       "cpu_seconds": 0.734375,
+       "peak_rss": 12767232,
+       "server_requests": 25,
+       "server_peak_connections": 6,
+       "overhead_percent": 0.013537883758544922
+      },
+      {
+       "ok": true,
+       "seconds": 25.7621532,
+       "process_seconds": 25.791350499988766,
+       "bytes": 209715200,
+       "cpu_seconds": 0.609375,
+       "peak_rss": 12742656,
+       "server_requests": 25,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.04663419723510742
+      },
+      {
+       "ok": true,
+       "seconds": 25.5273329,
+       "process_seconds": 25.557102999999188,
+       "bytes": 209715200,
+       "cpu_seconds": 1.125,
+       "peak_rss": 12554240,
+       "server_requests": 25,
+       "server_peak_connections": 6,
+       "overhead_percent": 0.02308368682861328
+      }
+     ]
+    },
+    "weft-app": {
+     "summary": {
+      "ok": 6,
+      "runs": 7,
+      "seconds": 25.535785249987384,
+      "seconds_min": 25.28287649998674,
+      "seconds_max": 25.804551400011405,
+      "seconds_mean": 25.49952893333102,
+      "seconds_stdev": 0.19536836623814696,
+      "seconds_ci95": 0.20505987872705184,
+      "mib_per_sec": 7.8321461167016855,
+      "cpu_seconds": 2.328125,
+      "peak_rss_mib": 357.8984375,
+      "startup_seconds": 0.5319094500009669,
+      "server_requests": 27.5,
+      "server_peak_connections": 5.0,
+      "overhead_percent": 0.028609275817871094
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 25.28625689999899,
+       "bytes": 209715200,
+       "cpu_seconds": 2.3125,
+       "peak_rss": 377552896,
+       "startup_seconds": 0.5433964000258129,
+       "server_requests": 23,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.010718345642089844
+      },
+      {
+       "ok": true,
+       "seconds": 25.551918300014222,
+       "bytes": 209715200,
+       "cpu_seconds": 2.34375,
+       "peak_rss": 375238656,
+       "startup_seconds": 0.533852399996249,
+       "server_requests": 29,
+       "server_peak_connections": 6,
+       "overhead_percent": 0.032964229583740234
+      },
+      {
+       "ok": true,
+       "seconds": 25.28287649998674,
+       "bytes": 209715200,
+       "cpu_seconds": 2.203125,
+       "peak_rss": 375050240,
+       "startup_seconds": 0.5305135000089649,
+       "server_requests": 29,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.024254322052001953
+      },
+      {
+       "ok": true,
+       "seconds": 25.804551400011405,
+       "bytes": 209715200,
+       "cpu_seconds": 2.484375,
+       "peak_rss": 374554624,
+       "startup_seconds": 0.5298791000095662,
+       "server_requests": 27,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.041310787200927734
+      },
+      {
+       "ok": false,
+       "error": "timed out"
+      },
+      {
+       "ok": true,
+       "seconds": 25.533740299986675,
+       "bytes": 209715200,
+       "cpu_seconds": 2.5,
+       "peak_rss": 375328768,
+       "startup_seconds": 0.5326407999964431,
+       "server_requests": 25,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.019397735595703125
+      },
+      {
+       "ok": true,
+       "seconds": 25.537830199988093,
+       "bytes": 209715200,
+       "cpu_seconds": 2.21875,
+       "peak_rss": 377344000,
+       "startup_seconds": 0.5311781000054907,
+       "server_requests": 28,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.03807497024536133
+      }
+     ]
+    },
+    "baseline": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 26.114,
+      "seconds_min": 26.05,
+      "seconds_max": 26.129,
+      "seconds_mean": 26.095285714285716,
+      "seconds_stdev": 0.03284161123592155,
+      "seconds_ci95": 0.030374518707868885,
+      "mib_per_sec": 7.65872711955273,
+      "cpu_seconds": 60.0625,
+      "peak_rss_mib": 683.7265625,
+      "startup_seconds": 0.57,
+      "server_requests": 199,
+      "server_peak_connections": 5,
+      "overhead_percent": 0.0
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 26.114,
+       "bytes": 209715200,
+       "cpu_seconds": 60.0625,
+       "peak_rss": 712249344,
+       "startup_seconds": 0.56,
+       "server_requests": 199,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.00048828125
+      },
+      {
+       "ok": true,
+       "seconds": 26.129,
+       "bytes": 209715200,
+       "cpu_seconds": 58.953125,
+       "peak_rss": 710397952,
+       "startup_seconds": 0.592,
+       "server_requests": 199,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.00048828125
+      },
+      {
+       "ok": true,
+       "seconds": 26.121,
+       "bytes": 209715200,
+       "cpu_seconds": 59.015625,
+       "peak_rss": 711823360,
+       "startup_seconds": 0.569,
+       "server_requests": 199,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.0009765625
+      },
+      {
+       "ok": true,
+       "seconds": 26.065,
+       "bytes": 209715200,
+       "cpu_seconds": 61.40625,
+       "peak_rss": 719802368,
+       "startup_seconds": 0.591,
+       "server_requests": 199,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 26.068,
+       "bytes": 209715200,
+       "cpu_seconds": 60.1875,
+       "peak_rss": 718082048,
+       "startup_seconds": 0.556,
+       "server_requests": 199,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 26.05,
+       "bytes": 209715200,
+       "cpu_seconds": 59.609375,
+       "peak_rss": 716939264,
+       "startup_seconds": 0.61,
+       "server_requests": 199,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.0
+      },
+      {
+       "ok": true,
+       "seconds": 26.12,
+       "bytes": 209715200,
+       "cpu_seconds": 61.140625,
+       "peak_rss": 720826368,
+       "startup_seconds": 0.57,
+       "server_requests": 199,
+       "server_peak_connections": 5,
+       "overhead_percent": 0.0
+      }
+     ]
+    }
+   }
+  },
+  "slow-first-byte": {
+   "about": "150 ms before every response, 4 MiB/s per connection",
+   "size": "200m",
+   "subjects": {
+    "weft-cli": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 3.6987467,
+      "seconds_min": 3.4421048,
+      "seconds_max": 3.7337796,
+      "seconds_mean": 3.5990639285714288,
+      "seconds_stdev": 0.14235079005330128,
+      "seconds_ci95": 0.1316572656710759,
+      "mib_per_sec": 54.07236997332096,
+      "cpu_seconds": 0.140625,
+      "peak_rss_mib": 27.7109375,
+      "startup_seconds": null,
+      "server_requests": 53,
+      "server_peak_connections": 32,
+      "overhead_percent": 0.32088756561279297
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 3.6987467,
+       "process_seconds": 3.732587699982105,
+       "bytes": 209715200,
+       "cpu_seconds": 0.140625,
+       "peak_rss": 29749248,
+       "server_requests": 53,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.38332128524780273
+      },
+      {
+       "ok": true,
+       "seconds": 3.4477555,
+       "process_seconds": 3.4766171000082977,
+       "bytes": 209715200,
+       "cpu_seconds": 0.859375,
+       "peak_rss": 29114368,
+       "server_requests": 55,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.28844785690307617
+      },
+      {
+       "ok": true,
+       "seconds": 3.7337796,
+       "process_seconds": 3.7615669000078924,
+       "bytes": 209715200,
+       "cpu_seconds": 0.03125,
+       "peak_rss": 28758016,
+       "server_requests": 53,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.3335404396057129
+      },
+      {
+       "ok": true,
+       "seconds": 3.7048249,
+       "process_seconds": 3.732987299998058,
+       "bytes": 209715200,
+       "cpu_seconds": 0.890625,
+       "peak_rss": 29392896,
+       "server_requests": 53,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.35288381576538086
+      },
+      {
+       "ok": true,
+       "seconds": 3.4522112,
+       "process_seconds": 3.4923321999958716,
+       "bytes": 209715200,
+       "cpu_seconds": 0.453125,
+       "peak_rss": 29057024,
+       "server_requests": 53,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.24468088150024414
+      },
+      {
+       "ok": true,
+       "seconds": 3.7140248,
+       "process_seconds": 3.741915299993707,
+       "bytes": 209715200,
+       "cpu_seconds": 0.078125,
+       "peak_rss": 28946432,
+       "server_requests": 55,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.2731490135192871
+      },
+      {
+       "ok": true,
+       "seconds": 3.4421048,
+       "process_seconds": 3.4708657000155654,
+       "bytes": 209715200,
+       "cpu_seconds": 0.09375,
+       "peak_rss": 27463680,
+       "server_requests": 54,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.32088756561279297
+      }
+     ]
+    },
+    "weft-app": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 3.7210023000079673,
+      "seconds_min": 3.466781600000104,
+      "seconds_max": 3.7539462999848183,
+      "seconds_mean": 3.6260057857143693,
+      "seconds_stdev": 0.13650121862728104,
+      "seconds_ci95": 0.12624711951727438,
+      "mib_per_sec": 53.748958983328706,
+      "cpu_seconds": 2.078125,
+      "peak_rss_mib": 373.05859375,
+      "startup_seconds": 0.542624399997294,
+      "server_requests": 54,
+      "server_peak_connections": 32,
+      "overhead_percent": 0.3553175926208496
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 3.491648700000951,
+       "bytes": 209715200,
+       "cpu_seconds": 2.75,
+       "peak_rss": 389877760,
+       "startup_seconds": 0.542624399997294,
+       "server_requests": 53,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.3106961250305176
+      },
+      {
+       "ok": true,
+       "seconds": 3.7210023000079673,
+       "bytes": 209715200,
+       "cpu_seconds": 3.78125,
+       "peak_rss": 394371072,
+       "startup_seconds": 0.5444926999916788,
+       "server_requests": 54,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.27573251724243164
+      },
+      {
+       "ok": true,
+       "seconds": 3.7539462999848183,
+       "bytes": 209715200,
+       "cpu_seconds": 1.71875,
+       "peak_rss": 396468224,
+       "startup_seconds": 0.5581774999736808,
+       "server_requests": 55,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.40272092819213867
+      },
+      {
+       "ok": true,
+       "seconds": 3.466781600000104,
+       "bytes": 209715200,
+       "cpu_seconds": 1.671875,
+       "peak_rss": 389898240,
+       "startup_seconds": 0.5337002000014763,
+       "server_requests": 56,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.3553175926208496
+      },
+      {
+       "ok": true,
+       "seconds": 3.7306277000170667,
+       "bytes": 209715200,
+       "cpu_seconds": 2.078125,
+       "peak_rss": 391180288,
+       "startup_seconds": 0.5447385000006761,
+       "server_requests": 53,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.463198184967041
+      },
+      {
+       "ok": true,
+       "seconds": 3.483567299990682,
+       "bytes": 209715200,
+       "cpu_seconds": 1.625,
+       "peak_rss": 391757824,
+       "startup_seconds": 0.5349807999737095,
+       "server_requests": 54,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.2455439567565918
+      },
+      {
+       "ok": true,
+       "seconds": 3.7344665999989957,
+       "bytes": 209715200,
+       "cpu_seconds": 2.125,
+       "peak_rss": 390930432,
+       "startup_seconds": 0.5322377000120468,
+       "server_requests": 54,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.3606419563293457
+      }
+     ]
+    },
+    "baseline": {
+     "summary": {
+      "ok": 7,
+      "runs": 7,
+      "seconds": 3.618,
+      "seconds_min": 3.596,
+      "seconds_max": 3.703,
+      "seconds_mean": 3.630714285714286,
+      "seconds_stdev": 0.0348650459424826,
+      "seconds_ci95": 0.03224595110827941,
+      "mib_per_sec": 55.2791597567717,
+      "cpu_seconds": 12.796875,
+      "peak_rss_mib": 699.93359375,
+      "startup_seconds": 0.571,
+      "server_requests": 206,
+      "server_peak_connections": 32,
+      "overhead_percent": 0.22185897827148438
+     },
+     "runs": [
+      {
+       "ok": true,
+       "seconds": 3.618,
+       "bytes": 209715200,
+       "cpu_seconds": 12.28125,
+       "peak_rss": 717066240,
+       "startup_seconds": 0.566,
+       "server_requests": 210,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.2461094856262207
+      },
+      {
+       "ok": true,
+       "seconds": 3.628,
+       "bytes": 209715200,
+       "cpu_seconds": 13.390625,
+       "peak_rss": 747393024,
+       "startup_seconds": 0.576,
+       "server_requests": 205,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.19506454467773438
+      },
+      {
+       "ok": true,
+       "seconds": 3.703,
+       "bytes": 209715200,
+       "cpu_seconds": 12.75,
+       "peak_rss": 733933568,
+       "startup_seconds": 0.59,
+       "server_requests": 205,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.17071151733398438
+      },
+      {
+       "ok": true,
+       "seconds": 3.612,
+       "bytes": 209715200,
+       "cpu_seconds": 12.4375,
+       "peak_rss": 717053952,
+       "startup_seconds": 0.566,
+       "server_requests": 219,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.4327964782714844
+      },
+      {
+       "ok": true,
+       "seconds": 3.616,
+       "bytes": 209715200,
+       "cpu_seconds": 13.390625,
+       "peak_rss": 740126720,
+       "startup_seconds": 0.561,
+       "server_requests": 206,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.2244706153869629
+      },
+      {
+       "ok": true,
+       "seconds": 3.596,
+       "bytes": 209715200,
+       "cpu_seconds": 12.84375,
+       "peak_rss": 739405824,
+       "startup_seconds": 0.592,
+       "server_requests": 204,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.1958174705505371
+      },
+      {
+       "ok": true,
+       "seconds": 3.642,
+       "bytes": 209715200,
+       "cpu_seconds": 12.796875,
+       "peak_rss": 725475328,
+       "startup_seconds": 0.571,
+       "server_requests": 207,
+       "server_peak_connections": 32,
+       "overhead_percent": 0.22185897827148438
+      }
+     ]
+    }
+   }
+  }
+ }
+}
