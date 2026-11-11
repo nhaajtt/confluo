@@ -133,6 +133,7 @@ function CommandBar() {
     window.removeEventListener("paste", onPaste);
   });
   return (
+    <div class="cmd-wrap">
     <form
       class="cmd"
       onSubmit={(e) => {
@@ -143,7 +144,7 @@ function CommandBar() {
       }}
     >
       <label class="prompt" for="cmd-input">
-        weft@lab <span>~ %</span>
+        WEFT<span>&gt;</span>
       </label>
       <input
         id="cmd-input"
@@ -155,12 +156,13 @@ function CommandBar() {
         aria-describedby="cmd-out"
       />
       <span class="hint" aria-hidden="true">
-        [ / ] focus · [ ↵ ] run
+        <kbd>/</kbd> focus <kbd>↵</kbd> run
       </span>
       <output id="cmd-out" class="cmd-out" classList={{ bad: message()?.bad }} aria-live="polite">
         {message()?.text ?? ""}
       </output>
     </form>
+    </div>
   );
 }
 
@@ -610,8 +612,8 @@ export default function App() {
           <span>
             {count("running")} running · {count("queued")} waiting
           </span>
-          <button onClick={() => setTheme(theme() === "dark" ? "light" : "dark")} aria-label="Switch between dark and light">
-            {theme() === "dark" ? "[ DARK ]" : "[ LIGHT ]"}
+          <button class="round" onClick={() => setTheme(theme() === "dark" ? "light" : "dark")} aria-label="Switch between dark and light" title={theme() === "dark" ? "Dark" : "Light"}>
+            ◐
           </button>
           <button onClick={() => setSetupOpen(true)} aria-haspopup="dialog">
             ⚙ Setup
