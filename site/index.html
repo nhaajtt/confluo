@@ -8,7 +8,7 @@
 <meta property="og:title" content="Weft" />
 <meta property="og:description" content="Every network you have, woven into one download. Free, for Windows." />
 <meta property="og:type" content="website" />
-<meta name="theme-color" content="#080b0e" />
+<meta name="theme-color" content="#0a0a0c" />
 <link rel="icon" type="image/png" href="icon.png" />
 <link rel="preload" href="fonts/Geist-100-900-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="fonts/DepartureMono-Regular.woff2" as="font" type="font/woff2" crossorigin />
@@ -25,6 +25,7 @@
       <button type="button" class="hdr-cmd hide-sm" id="jumpOpen" title="Jump to… (Ctrl+K)"><span data-vi="Đi tới">Jump to</span><span class="hdr-cmd-keys" aria-hidden="true"><kbd>Ctrl</kbd><kbd>K</kbd></span></button>
       <span class="hdr-cmd hdr-seg" role="group" aria-label="Language"><button type="button" data-lang="vi">VI</button><button type="button" data-lang="en">EN</button></span>
       <button type="button" id="theme" class="hdr-terminal is-plain" aria-label="Toggle dark mode">◐</button>
+      <a class="hdr-terminal is-plain hide-sm" href="https://github.com/nhaajtt/weft" target="_blank" rel="noopener" aria-label="GitHub"><svg class="gh" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.24 2.76.12 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.4-5.27 5.68.42.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg></a>
       <a class="hdr-terminal desk-only" href="download/Weft-setup.exe" download aria-label="Download" title="Download"><span aria-hidden="true">&gt;</span><span class="hdr-terminal-cursor" aria-hidden="true">_</span></a>
     </div>
   </header>
@@ -59,6 +60,7 @@
       <p class="lab-intro-meta"><b id="clock">--:--:--</b><i aria-hidden="true">·</i><span data-vi="trên máy bạn">on your PC</span></p>
       <div class="lab-intro-controls">
         <a class="lab-intro-hi desk-only" href="download/Weft-setup.exe" download><span data-vi="Tải .exe">Download .exe</span><span aria-hidden="true">↓</span></a>
+        <a class="lab-intro-hi" href="https://github.com/nhaajtt/weft" target="_blank" rel="noopener"><span data-vi="Mã nguồn">Source</span><span aria-hidden="true">↗</span></a>
         <a class="lab-intro-hi" href="#numbers"><span data-vi="Số đo">Numbers</span><span aria-hidden="true">→</span></a>
         <a class="lab-intro-hi" href="#faq"><span>FAQ</span><span aria-hidden="true">→</span></a>
       </div>
@@ -196,7 +198,7 @@
       <h2 class="g-title reveal" data-vi="Hỏi nhanh, đáp thật">Short questions, straight answers</h2>
       <div class="g-faq">
         <details class="reveal" open><summary data-vi="Có miễn phí không?">Is it free?</summary>
-        <p data-vi="Có. Không tài khoản, không quảng cáo, không bản trả tiền. Mã nguồn theo giấy phép MIT.">Yes. No account, no ads, no paid tier. The source is under the MIT licence.</p></details>
+        <p data-vi="Có. Không tài khoản, không quảng cáo, không bản trả tiền. Mã nguồn theo giấy phép MIT.">Yes. No account, no ads, no paid tier. The source is under the MIT licence, <a href="https://github.com/nhaajtt/weft">on GitHub</a>.</p></details>
         <details class="reveal"><summary data-vi="Hai mạng thì nhanh gấp đôi?">Do two networks make it twice as fast?</summary>
         <p data-vi="Chỉ khi chúng là hai đường Internet khác nhau, ví dụ cáp quang ở nhà cộng với 4G từ điện thoại. Dây LAN và Wi-Fi cắm chung một modem vẫn chỉ là một đường; Weft nhận ra điều đó và báo cho bạn.">Only when they are two different internet lines, such as home fibre plus a phone's 4G. Ethernet and Wi-Fi on the same router are still one line; Weft notices that and tells you.</p></details>
         <details class="reveal"><summary data-vi="Sao Windows lại cảnh báo khi cài?">Why does Windows warn me?</summary>
@@ -231,7 +233,7 @@
 
   <footer class="g-foot">
     <p><span data-vi="Làm bởi">Built by</span> <a href="https://www.nhaajt.com" target="_blank" rel="noopener">Nhaajt</a>. <span data-vi="Chạy hoàn toàn trên máy bạn. Trang này không dùng cookie hay công cụ theo dõi.">Runs entirely on your PC. This page uses no cookies and no trackers.</span></p>
-    <p><a href="download/Weft-setup.exe" download data-vi="Tải .exe">Download .exe</a> · <a href="install.ps1">install.ps1</a> · <a href="download/SHA256SUMS">SHA256SUMS</a> · MIT</p>
+    <p><a href="download/Weft-setup.exe" download data-vi="Tải .exe">Download .exe</a> · <a href="install.ps1">install.ps1</a> · <a href="download/SHA256SUMS">SHA256SUMS</a> · <a href="https://github.com/nhaajtt/weft">GitHub</a> · <a href="https://github.com/nhaajtt/weft/releases">Releases</a> · <a href="https://github.com/nhaajtt/weft/blob/main/LICENSE">MIT</a></p>
     <p class="g-kicker">© 2026 Nhaajt · Weft</p>
   </footer>
 </div>
@@ -242,5 +244,6 @@
 </dialog>
 
 <script src="main.js" defer></script>
+<script type="module" src="backdrop.js"></script>
 </body>
 </html>

@@ -4,6 +4,9 @@ A download manager that spreads one download over several connections and severa
 network interfaces, survives crashes and bad servers, and tells you what is limiting
 the speed. Windows first; the engine also builds on Linux and macOS.
 
+Download and install command: **https://weft.nhaajt.com** · installers are also attached to the
+[releases](https://github.com/nhaajtt/weft/releases).
+
 Weft was built after studying [Baseline](https://github.com/example/baseline) (MIT). It is an
 independent implementation in Rust with a Tauri shell, not a fork. Baseline is used, unmodified,
 as the baseline in the benchmarks below.

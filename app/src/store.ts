@@ -108,7 +108,7 @@ export function count(status: Item["status"]): number {
 
 // ---- Look and feel, kept in localStorage (applied before first paint by theme-init.js). ----
 
-export const ACCENTS = ["cyan", "orange", "green", "pink", "amber"] as const;
+export const ACCENTS = ["neon", "cyan", "orange", "green", "pink", "amber"] as const;
 export type Accent = (typeof ACCENTS)[number];
 
 function stored(key: string, fallback: string): string {
@@ -131,9 +131,9 @@ export const [theme, setThemeSignal] = createSignal<"dark" | "light">(
   stored("weft.theme", "dark") === "light" ? "light" : "dark",
 );
 export const [accent, setAccentSignal] = createSignal<Accent>(
-  (ACCENTS as readonly string[]).includes(stored("weft.accent", "cyan"))
-    ? (stored("weft.accent", "cyan") as Accent)
-    : "cyan",
+  (ACCENTS as readonly string[]).includes(stored("weft.accent", "neon"))
+    ? (stored("weft.accent", "neon") as Accent)
+    : "neon",
 );
 export const [reducedMotion, setReducedSignal] = createSignal(stored("weft.motion", "") === "reduced");
 

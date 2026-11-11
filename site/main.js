@@ -228,6 +228,7 @@ const JUMPS = [
   ["#faq", "FAQ", "FAQ"],
   ["#install", "Install", "Cài đặt"],
   ["download/Weft-setup.exe", "Download .exe", "Tải file .exe"],
+  ["https://github.com/nhaajtt/weft", "Source on GitHub", "Mã nguồn trên GitHub"],
 ];
 const jump = document.getElementById("jump");
 const jumpIn = document.getElementById("jumpIn");
@@ -246,7 +247,7 @@ function drawJump() {
       li.dataset.to = r[0];
       li.textContent = vi ? r[2] : r[1];
       const hint = document.createElement("span");
-      hint.textContent = r[0].startsWith("#") ? r[0] : "↓";
+      hint.textContent = r[0].startsWith("#") ? r[0] : r[0].startsWith("http") ? "↗" : "↓";
       li.append(hint);
       return li;
     }),

@@ -1,6 +1,7 @@
 /* Weft. The same visual system as nhaajt.com and its product pages: a deep ground with
    colour far behind it, hairline borders, glass panels, pill controls, Geist for reading,
-   Geist Mono for numbers and Departure Mono for labels. Cyan is this app's own colour. */
+   Geist Mono for numbers and Departure Mono for labels. Neon yellow with neon pink is this
+   app's own pair. */
 
 @font-face { font-family: "Departure Mono"; font-weight: 400; font-display: swap; src: url("./DepartureMono-Regular.woff2") format("woff2"); }
 
@@ -9,18 +10,19 @@
   --mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
   --pixel: "Departure Mono", var(--mono);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --bg: #080b0e;
-  --bg2: #0c1115;
-  --bg3: #111a1f;
-  --border: #18242b;
+  --bg: #0a0a0c;
+  --bg2: #111114;
+  --bg3: #18181d;
+  --border: #24242b;
   --border-h: #ffffff40;
   --tp: #ffffff;
   --ts: #dadbdf;
   --tt: #8d9196;
-  /* Cyan: the colour of a current, for an app that joins streams into one. */
-  --ac: #22d3ee;
-  --ac-soft: #a5f3fc;
-  --ac-dim: #22d3ee1a;
+  /* Two threads of different colour, for an app that weaves streams into one. */
+  --ac: #e4ff3d;
+  --ac2: #ff3fa4;
+  --ac-soft: #f4ffa6;
+  --ac-dim: #e4ff3d1a;
   --ac-text: var(--ac);
   /* The lead button, its ink and its glow follow whichever accent is chosen. */
   --btn: linear-gradient(180deg, color-mix(in srgb, var(--ac) 55%, #fff), var(--ac));
@@ -35,15 +37,16 @@
   --scan: #ffffff0a;
   --sky: 0.2;
   /* One colour per network, the same in the flow drawing, the chart and the legend. */
-  --s1: #22d3ee;
-  --s2: #a78bfa;
-  --s3: #fbbf24;
+  --s1: #e4ff3d;
+  --s2: #ff3fa4;
+  --s3: #5ee7ff;
   --s4: #f472b6;
   --s5: #86efac;
   --s6: #fb923c;
   --bad: #ff6b6b;
   color-scheme: dark;
 }
+[data-accent="cyan"] { --ac: #22d3ee; --ac-soft: #a5f3fc; --ac-dim: #22d3ee1a; --s1: #22d3ee; --s2: #a78bfa; --s3: #fbbf24; }
 [data-accent="orange"] { --ac: #ff7a17; --ac-soft: #ffc285; --ac-dim: #ff7a171a; }
 [data-accent="green"] { --ac: #39d98a; --ac-soft: #9df3c4; --ac-dim: #39d98a1a; }
 [data-accent="pink"] { --ac: #ff2fb0; --ac-soft: #ff9ad8; --ac-dim: #ff2fb01a; }
@@ -68,15 +71,17 @@
   --scan: #0000000a;
   --sky: 0.14;
   /* The accents are too light to read as text on paper; marks keep the pure tone. */
-  --ac-text: #0b7285;
-  --s1: #0891b2;
-  --s2: #7c3aed;
-  --s3: #b45309;
+  --ac-text: #c2187a;
+  --s1: #8a9a00;
+  --s2: #c2187a;
+  --s3: #0e7490;
   --s4: #be185d;
   --s5: #15803d;
   --s6: #c2410c;
   color-scheme: light;
 }
+[data-theme="light"][data-accent="neon"] { --ac: #c2187a; --ac2: #7a8a00; --ac-soft: #8e0f58; --ac-dim: #c2187a1a; }
+[data-theme="light"][data-accent="cyan"] { --ac-text: #0b7285; --s1: #0891b2; --s2: #7c3aed; --s3: #b45309; }
 [data-theme="light"][data-accent="orange"] { --ac-text: #b24a00; }
 [data-theme="light"][data-accent="green"] { --ac-text: #0a7a43; }
 [data-theme="light"][data-accent="pink"] { --ac-text: #b3007a; }
@@ -87,7 +92,7 @@ html, body, #root { height: 100%; margin: 0; }
 body {
   background:
     radial-gradient(46vmax 46vmax at 6% -12%, color-mix(in srgb, var(--ac) calc(var(--sky) * 100%), transparent), transparent 70%),
-    radial-gradient(40vmax 40vmax at 108% 62%, color-mix(in srgb, #1479d6 calc(var(--sky) * 80%), transparent), transparent 70%),
+    radial-gradient(40vmax 40vmax at 108% 62%, color-mix(in srgb, var(--ac2) calc(var(--sky) * 70%), transparent), transparent 70%),
     var(--bg);
   color: var(--ts);
   font: 14px/1.45 var(--sans);
@@ -193,7 +198,7 @@ input:focus-visible { outline-offset: 0; }
 }
 .top h1 span {
   font: 11px var(--mono);
-  color: var(--ac-text);
+  color: var(--ac2);
   letter-spacing: 0.08em;
 }
 .strap { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -419,6 +424,7 @@ main {
 .swatches button { display: inline-flex; align-items: center; gap: 8px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; }
 .swatches button[aria-checked="true"] { border-color: var(--ac); color: var(--tp); }
 .swatches i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+[data-swatch="neon"] i { background: linear-gradient(135deg, #e4ff3d 50%, #ff3fa4 50%); }
 [data-swatch="cyan"] i { background: #22d3ee; }
 [data-swatch="orange"] i { background: #ff7a17; }
 [data-swatch="green"] i { background: #39d98a; }
