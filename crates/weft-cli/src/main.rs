@@ -10,7 +10,7 @@ use tokio::sync::watch;
 use url::Url;
 use weft_engine::limit::Limiter;
 use weft_engine::routes::{RouteBook, Selection, watch_routes};
-use weft_engine::{Checksum, Command, Config, Outcome, Snapshot, Spec, download};
+use weft_engine::{Checksum, Command, Config, Outcome, Route, Snapshot, Spec, download};
 
 const USAGE: &str = "\
 weft - multi-network download engine
@@ -24,6 +24,7 @@ OPTIONS (get):
   -n, --name <file>       file name (default: what the server suggests)
   -i, --interface <name>  use this network interface; repeat for several
       --system            let the operating system choose the route
+      --emulate-links <r,r>  pretend to have networks of these speeds (e.g. 4m,1m); for testing
   -c, --connections <n>   most connections per network (default 32)
   -l, --limit <rate>      speed limit, e.g. 500k, 2m (bytes per second)
       --checksum <hash>   expected sha256 / sha1 / md5, optionally prefixed (sha256:...)
@@ -39,6 +40,8 @@ struct Args {
     name: Option<String>,
     interfaces: Vec<String>,
     system: bool,
+    /// Speeds of pretend networks, for testing the scheduler on one machine.
+    emulate: Vec<u64>,
     connections: Option<usize>,
     limit: u64,
     checksum: Option<Checksum>,
@@ -67,6 +70,7 @@ fn parse(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
         name: None,
         interfaces: Vec::new(),
         system: false,
+        emulate: Vec::new(),
         connections: None,
         limit: 0,
         checksum: None,
@@ -82,6 +86,11 @@ fn parse(mut it: impl Iterator<Item = String>) -> Result<Args, String> {
             "-n" | "--name" => a.name = Some(value("--name")?),
             "-i" | "--interface" => a.interfaces.push(value("--interface")?),
             "--system" => a.system = true,
+            "--emulate-links" => {
+                for part in value("--emulate-links")?.split(',') {
+                    a.emulate.push(parse_rate(part).filter(|r| *r > 0).ok_or("bad --emulate-links")?);
+                }
+            }
             "-c" | "--connections" => {
                 a.connections = Some(value("--connections")?.parse().map_err(|_| "bad --connections")?);
             }
@@ -170,7 +179,21 @@ async fn get(args: Args) -> ExitCode {
         Selection::Only(args.interfaces.clone())
     };
     let (_sel_tx, sel_rx) = watch::channel(selection);
-    let routes = watch_routes(Arc::new(RouteBook::default()), sel_rx);
+    let (_emu_tx, emu_rx) = watch::channel(
+        args.emulate
+            .iter()
+            .enumerate()
+            .map(|(i, rate)| Route {
+                id: format!("link{}", i + 1),
+                label: format!("link {} ({}/s)", i + 1, human(*rate as f64)),
+                bind: None,
+                limiter: Arc::new(Limiter::new(*rate)),
+                uplink: None,
+            })
+            .collect::<Vec<_>>(),
+    );
+    let routes =
+        if args.emulate.is_empty() { watch_routes(Arc::new(RouteBook::default()), sel_rx) } else { emu_rx };
     let (cmd_tx, cmd_rx) = watch::channel(Command::Run);
     tokio::spawn(async move {
         // Ctrl-C pauses: the partial file and its journal stay for the next run.

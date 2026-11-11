@@ -225,7 +225,11 @@ fn main() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let state_dir = app.path().app_data_dir()?;
+            // WEFT_STATE_DIR keeps test and benchmark runs away from the real list.
+            let state_dir = match std::env::var_os("WEFT_STATE_DIR").map(PathBuf::from) {
+                Some(dir) if dir.is_absolute() => dir,
+                _ => app.path().app_data_dir()?,
+            };
             let downloads = app.path().download_dir().unwrap_or_else(|_| state_dir.join("downloads"));
             std::fs::create_dir_all(&state_dir)?;
             let token = weft_bridge::load_or_create_token(&state_dir)?;

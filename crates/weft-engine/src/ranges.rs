@@ -123,6 +123,22 @@ impl RangeSet {
         Some((a, end))
     }
 
+    /// Removes and returns up to `len` bytes from the end of the highest span.
+    pub fn take_back(&mut self, len: u64, min_left: u64) -> Option<(u64, u64)> {
+        let &(a, b) = self.spans.last()?;
+        let mut start = b.saturating_sub(len.max(1)).max(a);
+        if start - a < min_left {
+            start = a;
+        }
+        if start == a {
+            self.spans.pop();
+        } else {
+            let last = self.spans.len() - 1;
+            self.spans[last].1 = start;
+        }
+        Some((start, b))
+    }
+
     /// Like [`Self::take_front`], but from the span that starts exactly at `start`.
     /// Returns the end of what was taken.
     pub fn take_at(&mut self, start: u64, len: u64, min_left: u64) -> Option<u64> {

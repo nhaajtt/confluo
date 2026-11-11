@@ -16,6 +16,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::ranges::RangeSet;
 
+/// The longest a single lease is planned to take.
+const SHARE_HORIZON_SECS: f64 = 30.0;
+
 #[derive(Debug, Clone)]
 pub struct SchedConfig {
     /// Smallest range worth a request.
@@ -45,8 +48,8 @@ impl Default for SchedConfig {
             max_piece: 1024 * 1024 * 1024,
             first_piece: 4 * 1024 * 1024,
             target_secs: 8.0,
-            min_steal: 512 * 1024,
-            min_steal_eta_secs: 1.5,
+            min_steal: 256 * 1024,
+            min_steal_eta_secs: 1.0,
             equal_split: true,
         }
     }
@@ -141,11 +144,18 @@ impl Scheduler {
         self.parallel = n.max(1);
     }
 
-    fn piece_for(&self, rate: f64) -> u64 {
+    /// How much to hand out. `holder` is true when the asker already holds a lease
+    /// (its speed is then part of the measured total).
+    fn piece_for(&self, rate: f64, holder: bool) -> u64 {
         let timed = if rate <= 0.0 { self.cfg.first_piece } else { (rate * self.cfg.target_secs) as u64 };
-        let share = if self.cfg.equal_split {
-            let waiting = self.parallel.saturating_sub(self.active.len()).max(1) as u64;
-            self.pending.total() / waiting
+        // A connection with a known speed gets the part of what is left that matches
+        // its part of the total speed, so that all connections finish together.
+        let share = if self.cfg.equal_split && rate > 0.0 {
+            let measured: f64 = self.active.values().filter(|a| a.measured).map(|a| a.rate).sum();
+            let total = if holder { measured.max(rate) } else { measured + rate };
+            // Early on, few speeds are known and the share comes out too large, so it
+            // is also held to what this connection can fetch in half a minute.
+            ((self.pending.total() as f64 * rate / total) as u64).min((rate * SHARE_HORIZON_SECS) as u64)
         } else {
             0
         };
@@ -155,7 +165,15 @@ impl Scheduler {
     /// Gives the caller a range to fetch. `rate` is the caller's measured speed in bytes/s
     /// (0 when unknown).
     pub fn acquire(&mut self, rate: f64) -> Option<Lease> {
-        let (start, end) = match self.pending.take_front(self.piece_for(rate), self.cfg.min_piece) {
+        let piece = self.piece_for(rate, false);
+        // With long leases, new work is cut from the far end. The bytes right behind
+        // a running stream stay free, so it can grow into them without a new request.
+        let taken = if self.cfg.equal_split {
+            self.pending.take_back(piece, self.cfg.min_piece)
+        } else {
+            self.pending.take_front(piece, self.cfg.min_piece)
+        };
+        let (start, end) = match taken {
             Some(r) => r,
             None => self.steal(rate)?,
         };
@@ -226,7 +244,7 @@ impl Scheduler {
     pub fn extend(&mut self, id: u64) -> bool {
         let Some(a) = self.active.get(&id) else { return false };
         let end = a.end.load(Ordering::Acquire);
-        let piece = self.piece_for(a.rate);
+        let piece = self.piece_for(a.rate, true);
         let Some(new_end) = self.pending.take_at(end, piece, self.cfg.min_piece) else { return false };
         self.active[&id].end.store(new_end, Ordering::Release);
         true

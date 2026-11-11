@@ -1079,7 +1079,7 @@ pub async fn download(
         // others finish; only connections that are already open take over tails then.
         let nearly_done = unassigned == 0 && {
             let rate = total_meter.rate(now);
-            rate > 0.0 && in_flight as f64 / rate < 4.0
+            rate > 0.0 && in_flight as f64 / rate < 1.5
         };
         let mut total_active: usize = runs.values().map(|r| r.shared.active.load(Ordering::Acquire)).sum();
         let mut budget = if unassigned > 0 {

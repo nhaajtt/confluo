@@ -345,6 +345,31 @@ async fn handle(
         r.headers_mut().insert(header::LOCATION, HeaderValue::from_str(&to).unwrap());
         return Ok(r);
     }
+    if path == "/stats" || path == "/reset" {
+        // Counters for benchmarks: how much the server really sent, in how many requests.
+        stats.requests.fetch_sub(1, Ordering::Relaxed);
+        let body = format!(
+            "{{\"requests\":{},\"range_requests\":{},\"body_bytes\":{},\"peak_active\":{},\"connections\":{}}}",
+            stats.requests.load(Ordering::Relaxed),
+            stats.range_requests.load(Ordering::Relaxed),
+            stats.body_bytes.load(Ordering::Relaxed),
+            stats.peak_active.load(Ordering::Relaxed),
+            stats.connections.load(Ordering::Relaxed).saturating_sub(1),
+        );
+        if path == "/reset" {
+            stats.requests.store(0, Ordering::Relaxed);
+            stats.range_requests.store(0, Ordering::Relaxed);
+            stats.body_bytes.store(0, Ordering::Relaxed);
+            stats.peak_active.store(0, Ordering::Relaxed);
+            stats.connections.store(0, Ordering::Relaxed);
+        }
+        let (tx, rx) = mpsc::channel(1);
+        let len = body.len() as u64;
+        let _ = tx.try_send(Ok(Bytes::from(body)));
+        let mut r = Response::new(ChanBody { rx, len: Some(len) });
+        r.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        return Ok(r);
+    }
     if !path.starts_with("/file") {
         return Ok(empty(StatusCode::NOT_FOUND));
     }
