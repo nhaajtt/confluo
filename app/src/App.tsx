@@ -1,7 +1,8 @@
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { api, type Item, type Networks, type Settings } from "./api";
-import { BlockMap, SpeedChart } from "./canvas";
+import { BlockMap } from "./canvas";
+import { FlowPanel } from "./flow";
 import { bytes, duration, host, parseLinks, parseRate, percent, rate, STATUS_TAG, VERDICTS } from "./format";
 import {
   accent,
@@ -308,14 +309,7 @@ function Detail() {
                 />
               </section>
 
-              <section>
-                <h3 class="lbl">Speed · last minute</h3>
-                <SpeedChart
-                  samples={() => samples(it.id)}
-                  routeIds={(snap()?.routes ?? []).map((r) => r.id)}
-                  label="Download speed over the last minute"
-                />
-              </section>
+              <FlowPanel snap={snap} running={() => it.status === "running"} samples={() => samples(it.id)} />
 
               <Show when={snap()}>
                 {(s) => (
