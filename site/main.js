@@ -1,84 +1,299 @@
-// Language switch, copy button, and the hero drawing. No dependencies, no network calls.
-(() => {
-  "use strict";
-  const $ = (s) => document.querySelector(s);
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Language and theme switches, the word-by-word lede, the clock, the timeline, the jump
+// palette and the live flow drawing. No dependencies; the only request is for the checksum.
 
-  // ---- Language: English in the markup, Vietnamese in data-vi. ----
-  const nodes = [...document.querySelectorAll("[data-vi]")];
-  for (const n of nodes) n.dataset.en = n.textContent;
-  let lang = "en";
-  function setLang(next) {
-    lang = next === "vi" ? "vi" : "en";
-    document.documentElement.lang = lang;
-    for (const n of nodes) n.textContent = n.dataset[lang];
-    for (const b of document.querySelectorAll("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
-    document.title =
-      lang === "vi" ? "Weft: mọi đường mạng bạn có, dệt thành một lần tải" : "Weft: every network you have, woven into one download";
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const store = {
+  get(key) {
     try {
-      localStorage.setItem("weft.lang", lang);
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
     } catch {
       /* not remembered, still applied */
     }
-  }
-  let saved = null;
-  try {
-    saved = localStorage.getItem("weft.lang");
-  } catch {
-    /* storage unavailable */
-  }
-  setLang(saved ?? ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"));
-  for (const b of document.querySelectorAll("[data-lang]")) b.addEventListener("click", () => setLang(b.dataset.lang));
+  },
+};
 
-  // ---- Copy the install command. ----
-  const copy = $("#copy");
-  copy?.addEventListener("click", async () => {
-    const text = $("#cmd").textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const r = document.createRange();
-      r.selectNodeContents($("#cmd"));
-      const sel = getSelection();
-      sel.removeAllRanges();
-      sel.addRange(r);
-      return;
+// --- the lede arrives word by word; highlighted phrases and links move as one piece
+let wordsShown = false;
+function splitWords(el) {
+  let i = 0;
+  const wrap = (node) => {
+    const w = document.createElement("span");
+    w.className = "lab-intro-w";
+    w.style.setProperty("--d", `${120 + i++ * 45}ms`);
+    w.append(node);
+    return w;
+  };
+  const out = [];
+  for (const n of [...el.childNodes]) {
+    if (n.nodeType !== 3) {
+      out.push(wrap(n));
+      continue;
     }
-    copy.classList.add("ok");
-    copy.textContent = lang === "vi" ? copy.dataset.doneVi : copy.dataset.doneEn;
-    setTimeout(() => {
-      copy.classList.remove("ok");
-      copy.textContent = copy.dataset[lang];
-    }, 1600);
-  });
-
-  // ---- The installer's checksum, written next to it at publish time. ----
-  fetch("download/SHA256SUMS", { cache: "no-cache" })
-    .then((r) => (r.ok ? r.text() : ""))
-    .then((t) => {
-      const hash = t.trim().split(/\s+/)[0];
-      if (/^[0-9a-f]{64}$/.test(hash)) $("#sha").textContent = hash;
-    })
-    .catch(() => {});
-
-  // ---- Sections ease in once. ----
-  const reveal = [...document.querySelectorAll(".block, .facts, .closer")];
-  if (!reduced && "IntersectionObserver" in window) {
-    for (const el of reveal) el.classList.add("reveal");
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            e.target.classList.add("in");
-            io.unobserve(e.target);
-          }
-        }
-      },
-      { rootMargin: "0px 0px -8% 0px" },
-    );
-    for (const el of reveal) io.observe(el);
+    for (const t of n.textContent.split(/(\s+)/)) if (t) out.push(/^\s+$/.test(t) ? " " : wrap(t));
   }
+  el.replaceChildren(...out);
+  el.classList.toggle("no-anim", wordsShown || reduced);
+  wordsShown = true;
+}
 
+// --- English / Tiếng Việt: elements keep their Vietnamese text in data-vi
+const TITLES = {
+  en: "Weft: every network you have, woven into one download",
+  vi: "Weft: mọi đường mạng bạn có, dệt thành một lần tải",
+};
+const nodes = [...document.querySelectorAll("[data-vi]")];
+for (const n of nodes) n.dataset.en = n.innerHTML;
+function setLang(lang) {
+  const vi = lang === "vi";
+  for (const n of nodes) n.innerHTML = vi ? n.dataset.vi : n.dataset.en;
+  document.querySelectorAll("[data-words]").forEach(splitWords);
+  for (const n of document.querySelectorAll("[data-vi-ph]")) {
+    n.dataset.enPh ??= n.placeholder;
+    n.placeholder = vi ? n.dataset.viPh : n.dataset.enPh;
+  }
+  document.documentElement.lang = vi ? "vi" : "en";
+  document.title = TITLES[vi ? "vi" : "en"];
+  for (const b of document.querySelectorAll("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+  store.set("lang", vi ? "vi" : "en");
+  document.dispatchEvent(new Event("lang"));
+}
+setLang(store.get("lang") || ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"));
+for (const b of document.querySelectorAll("[data-lang]")) b.addEventListener("click", () => setLang(b.dataset.lang));
+
+// --- light / dark: a circle grows from the button into the new theme
+document.getElementById("theme").addEventListener("click", (e) => {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  const apply = () => {
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    store.set("theme", dark ? "dark" : "light");
+    document.dispatchEvent(new Event("theme"));
+  };
+  if (!document.startViewTransition || reduced) return apply();
+  const x = e.clientX || innerWidth - 60;
+  const y = e.clientY || 30;
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  document.startViewTransition(apply).ready.then(() =>
+    document.documentElement.animate(
+      { clipPath: [`circle(0 at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 520, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", pseudoElement: "::view-transition-new(root)" },
+    ),
+  );
+});
+
+// --- sections ease in as they arrive
+const io = new IntersectionObserver(
+  (entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      e.target.classList.add("in");
+      io.unobserve(e.target);
+    }
+  },
+  { rootMargin: "0px 0px -12% 0px" },
+);
+document.querySelectorAll(".reveal").forEach((el, i) => {
+  el.style.transitionDelay = `${(i % 2) * 70}ms`;
+  io.observe(el);
+});
+
+// --- the clock in the readout
+const clockEl = document.getElementById("clock");
+const tickClock = () => (clockEl.textContent = new Date().toLocaleTimeString("en-US"));
+tickClock();
+setInterval(tickClock, 1000);
+
+// --- copy the install command; phones send the page to a PC instead
+const PAGE = "https://weft.nhaajt.com";
+async function copyText(btn, text) {
+  const vi = document.documentElement.lang === "vi";
+  try {
+    await navigator.clipboard.writeText(text);
+    const old = btn.textContent;
+    btn.textContent = vi ? "Đã chép ✓" : "Copied ✓";
+    setTimeout(() => (btn.textContent = old), 1600);
+  } catch {
+    /* clipboard refused: the text stays selectable */
+  }
+}
+async function shareLink(btn) {
+  const vi = document.documentElement.lang === "vi";
+  const text = vi ? "Weft: tải file qua mọi mạng cùng lúc. Cài trên máy tính Windows:" : "Weft: one download over every network. Install it on a Windows PC:";
+  try {
+    if (navigator.share) return await navigator.share({ title: "Weft", text, url: PAGE });
+  } catch {
+    return;
+  }
+  copyText(btn, PAGE);
+}
+for (const b of document.querySelectorAll(".copy-cmd")) {
+  b.addEventListener("click", () => copyText(b, b.parentElement.querySelector(".cmdtext").textContent));
+}
+document.getElementById("shareLink")?.addEventListener("click", (e) => shareLink(e.currentTarget));
+document.getElementById("copyLink")?.addEventListener("click", (e) => copyText(e.currentTarget, PAGE));
+for (const b of document.querySelectorAll(".share-again")) b.addEventListener("click", () => shareLink(b));
+
+// --- the installer's checksum, written next to it at publish time
+fetch("download/SHA256SUMS", { cache: "no-cache" })
+  .then((r) => (r.ok ? r.text() : ""))
+  .then((t) => {
+    const hash = t.trim().split(/\s+/)[0];
+    if (/^[0-9a-f]{64}$/.test(hash)) document.getElementById("sha").textContent = hash;
+  })
+  .catch(() => {});
+
+// --- timeline: years across, one bar per thing, a line at today
+const T0 = 2024;
+const YEARS = 6;
+const PX = 150;
+const BARS = [
+  { from: 2026.84, row: 0, cls: "is-current", en: ["Weft 0.1", "Windows · 2026"], vi: ["Weft 0.1", "Windows · 2026"] },
+  { from: 2026.86, row: 1, cls: "", en: ["Browser hand-off", "Chrome · Edge · Firefox"], vi: ["Nhận tải từ trình duyệt", "Chrome · Edge · Firefox"] },
+  { from: 2026.87, row: 2, cls: "", en: ["One-line install", "PowerShell"], vi: ["Cài bằng một dòng lệnh", "PowerShell"] },
+  { from: 2027.05, row: 3, cls: "is-future", en: ["macOS and Linux app", "planned"], vi: ["App cho macOS và Linux", "dự kiến"] },
+  { from: 2024.76, row: 4, cls: "is-muted is-faint", href: "https://tauri.app", en: ["Tauri 2", "the shell"], vi: ["Tauri 2", "khung app"] },
+];
+const tlTrack = document.getElementById("tlTrack");
+const tlScroll = tlTrack.parentElement;
+const tlX = (year) => 24 + (year - T0) * PX;
+function buildTimeline() {
+  const vi = document.documentElement.lang === "vi";
+  const d = new Date();
+  const now = tlX(d.getFullYear() + (d.getMonth() + d.getDate() / 31) / 12);
+  const mk = (tag, cls, left) => {
+    const n = document.createElement(tag);
+    n.className = cls;
+    if (left != null) n.style.left = `${left}px`;
+    return n;
+  };
+  const out = [];
+  for (let y = 0; y < YEARS; y++) {
+    const tick = mk("span", tlX(T0 + y) > now ? "tl-tick is-future" : "tl-tick", tlX(T0 + y));
+    tick.textContent = T0 + y;
+    out.push(tick, mk("span", "tl-grid", tlX(T0 + y)));
+    if (y < YEARS - 1) for (let q = 1; q < 4; q++) out.push(mk("span", "tl-grid tl-grid--q", tlX(T0 + y + q / 4)));
+  }
+  out.push(mk("span", "tl-future", now));
+  const line = mk("span", "tl-now", now);
+  line.append(document.createElement("i"));
+  out.push(line);
+  for (const b of BARS) {
+    const bar = mk(b.href ? "a" : "div", `tl-bar ${b.cls}`, tlX(b.from));
+    if (b.href) Object.assign(bar, { href: b.href, target: "_blank", rel: "noopener" });
+    bar.style.top = `${49 + b.row * 56}px`;
+    const [name, sub] = vi ? b.vi : b.en;
+    const label = document.createElement("b");
+    label.textContent = name;
+    const note = document.createElement("span");
+    note.textContent = sub;
+    bar.append(label, note);
+    out.push(bar);
+  }
+  tlTrack.style.width = `${tlX(T0 + YEARS - 1) + 24}px`;
+  tlTrack.style.height = `${49 + 5 * 56}px`;
+  tlTrack.replaceChildren(...out);
+  tlScroll.scrollLeft = now - tlScroll.clientWidth / 2;
+}
+buildTimeline();
+document.addEventListener("lang", buildTimeline);
+let dragFrom = null;
+tlScroll.addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "mouse" || e.target.closest("a")) return;
+  dragFrom = e.clientX + tlScroll.scrollLeft;
+  tlScroll.classList.add("is-drag");
+});
+addEventListener("pointermove", (e) => {
+  if (dragFrom != null) tlScroll.scrollLeft = dragFrom - e.clientX;
+});
+addEventListener("pointerup", () => {
+  dragFrom = null;
+  tlScroll.classList.remove("is-drag");
+});
+
+// --- jump palette: Ctrl+K, type to filter, arrows and Enter
+const JUMPS = [
+  ["#top", "Top", "Đầu trang"],
+  ["#demo", "Live flow", "Dòng chảy trực tiếp"],
+  ["#timeline", "Timeline", "Dòng thời gian"],
+  ["#features", "What it does", "Làm được gì"],
+  ["#how", "Three steps", "Ba bước"],
+  ["#numbers", "Measured numbers", "Số đo"],
+  ["#private", "Privacy", "Riêng tư"],
+  ["#faq", "FAQ", "FAQ"],
+  ["#install", "Install", "Cài đặt"],
+  ["download/Weft-setup.exe", "Download .exe", "Tải file .exe"],
+];
+const jump = document.getElementById("jump");
+const jumpIn = document.getElementById("jumpIn");
+const jumpList = document.getElementById("jumpList");
+let jumpAt = 0;
+function drawJump() {
+  const vi = document.documentElement.lang === "vi";
+  const q = jumpIn.value.trim().toLowerCase();
+  const rows = JUMPS.filter((r) => `${r[1]} ${r[2]}`.toLowerCase().includes(q));
+  jumpAt = Math.max(0, Math.min(jumpAt, rows.length - 1));
+  jumpList.replaceChildren(
+    ...rows.map((r, i) => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", String(i === jumpAt));
+      li.dataset.to = r[0];
+      li.textContent = vi ? r[2] : r[1];
+      const hint = document.createElement("span");
+      hint.textContent = r[0].startsWith("#") ? r[0] : "↓";
+      li.append(hint);
+      return li;
+    }),
+  );
+  jumpList.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+}
+function goJump(to) {
+  if (!to) return;
+  jump.close();
+  if (to.startsWith("#")) document.querySelector(to)?.scrollIntoView();
+  else location.href = to;
+}
+function openJump() {
+  if (jump.open) return jump.close();
+  jumpIn.value = "";
+  jumpAt = 0;
+  drawJump();
+  jump.showModal();
+}
+document.getElementById("jumpOpen").addEventListener("click", openJump);
+addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    openJump();
+  }
+});
+jumpIn.addEventListener("input", () => {
+  jumpAt = 0;
+  drawJump();
+});
+jumpIn.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    jumpAt += e.key === "ArrowDown" ? 1 : -1;
+    drawJump();
+  }
+  if (e.key === "Enter") goJump(jumpList.querySelector('[aria-selected="true"]')?.dataset.to);
+});
+jumpList.addEventListener("click", (e) => goJump(e.target.closest("li")?.dataset.to));
+jump.addEventListener("click", (e) => {
+  if (e.target === jump) jump.close();
+});
+
+(() => {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const L = () => (document.documentElement.lang === "vi" ? "vi" : "en");
   // ---- Hero: three networks as threads joining one stream, and a minute of throughput. ----
   const threads = $("#threads");
   const chart = $("#chart");
@@ -154,10 +369,10 @@
       ctx.textBaseline = "alphabetic";
       ctx.font = `10px ${mono}`;
       ctx.fillStyle = dim;
-      ctx.fillText(n[lang], labelW, y - 3);
+      ctx.fillText(n[L()], labelW, y - 3);
       ctx.font = `600 12px ${mono}`;
       ctx.fillStyle = on ? color : dim;
-      ctx.fillText(on ? `${fmt(v)} MiB/s` : lang === "vi" ? "mất kết nối" : "dropped", labelW, y + 12);
+      ctx.fillText(on ? `${fmt(v)} MiB/s` : L() === "vi" ? "mất kết nối" : "dropped", labelW, y + 12);
       const span = mergeX - nodeX;
       ctx.beginPath();
       ctx.moveTo(nodeX, y);
@@ -190,7 +405,7 @@
     ctx.textAlign = "center";
     ctx.font = `9px ${mono}`;
     ctx.fillStyle = dim;
-    ctx.fillText(lang === "vi" ? "GỘP LẠI" : "COMBINED", mergeX - 6, mergeY - 16);
+    ctx.fillText(L() === "vi" ? "GỘP LẠI" : "COMBINED", mergeX - 6, mergeY - 16);
     ctx.beginPath();
     ctx.moveTo(mergeX + 10, mergeY);
     ctx.lineTo(w - 8, mergeY);
@@ -221,7 +436,7 @@
     ctx.textBaseline = "bottom";
     for (const v of [20, 40, 60]) {
       const y = Math.round(Y(v * MIB)) + 0.5;
-      ctx.strokeStyle = css("--line");
+      ctx.strokeStyle = css("--border");
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -263,7 +478,7 @@
     }
     totalEl.textContent = fmt(now.total);
     avgEl.textContent =
-      lang === "vi" ? `tb ${fmt(sum / history.length)} · đỉnh ${fmt(peak)}` : `avg ${fmt(sum / history.length)} · peak ${fmt(peak)}`;
+      L() === "vi" ? `tb ${fmt(sum / history.length)} · đỉnh ${fmt(peak)}` : `avg ${fmt(sum / history.length)} · peak ${fmt(peak)}`;
   }
 
   function frame() {
@@ -274,7 +489,8 @@
   }
   frame();
   addEventListener("resize", frame);
-  for (const b of document.querySelectorAll("[data-lang]")) b.addEventListener("click", frame);
+  document.addEventListener("lang", frame);
+  document.addEventListener("theme", frame);
   if (reduced) return;
 
   // Runs only while the drawing is on screen and the tab is visible.
@@ -305,7 +521,7 @@
   new IntersectionObserver((e) => {
     visible = e[0].isIntersecting;
     wake();
-  }).observe($(".stage"));
+  }).observe($("#demo"));
   document.addEventListener("visibilitychange", wake);
   wake();
 })();
