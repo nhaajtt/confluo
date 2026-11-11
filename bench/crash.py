@@ -1,6 +1,6 @@
 """Hard-kills each downloader half way through and measures what the kill cost.
 
-    bench/.venv/Scripts/python bench/crash.py --ip 10.10.99.106 --runs 3
+    bench/.venv/Scripts/python bench/crash.py --ip <LAN address> --runs 3
 
 The server counts every byte it sends. Whatever it sent beyond the size of the
 file was fetched twice (or was in flight when the process died).

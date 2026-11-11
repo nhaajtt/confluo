@@ -1,7 +1,7 @@
 """Abuses one download until it is done: the downloader is hard-killed and the
 server taken away, again and again, at random moments.
 
-    bench/.venv/Scripts/python bench/soak.py --ip 10.10.99.106 --events 12
+    bench/.venv/Scripts/python bench/soak.py --ip <LAN address> --events 12
 
 Passes when the finished file has the SHA-256 of an undisturbed download. Also
 reports how many bytes the server had to send beyond the size of the file.

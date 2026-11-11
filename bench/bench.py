@@ -1,6 +1,6 @@
 """Runs the same downloads through Weft and Baseline and records time, CPU, memory and server-side counters.
 
-    bench/.venv/Scripts/python bench/bench.py --ip 10.10.99.106 --runs 3
+    bench/.venv/Scripts/python bench/bench.py --ip <LAN address> --runs 3
 
 Everything is local: the file server is `weft-testsrv`, bound to one of this
 machine's own LAN addresses (Baseline binds its sockets to real adapters and cannot
