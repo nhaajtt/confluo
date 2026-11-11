@@ -45,8 +45,8 @@ impl Default for SchedConfig {
             max_piece: 1024 * 1024 * 1024,
             first_piece: 4 * 1024 * 1024,
             target_secs: 8.0,
-            min_steal: 1024 * 1024,
-            min_steal_eta_secs: 3.0,
+            min_steal: 512 * 1024,
+            min_steal_eta_secs: 1.5,
             equal_split: true,
         }
     }
@@ -221,6 +221,17 @@ impl Scheduler {
         }
     }
 
+    /// Grows a lease into the unassigned bytes right behind it, if there are any.
+    /// The holder can then keep reading the same response instead of asking again.
+    pub fn extend(&mut self, id: u64) -> bool {
+        let Some(a) = self.active.get(&id) else { return false };
+        let end = a.end.load(Ordering::Acquire);
+        let piece = self.piece_for(a.rate);
+        let Some(new_end) = self.pending.take_at(end, piece, self.cfg.min_piece) else { return false };
+        self.active[&id].end.store(new_end, Ordering::Release);
+        true
+    }
+
     /// Closes a lease. Whatever lies between its position and its end goes back to the pool.
     pub fn release(&mut self, id: u64) {
         if let Some(a) = self.active.remove(&id) {
@@ -294,7 +305,7 @@ mod tests {
         /// Under any interleaving of acquire / progress / fail / finish, every byte is
         /// fetched exactly once and the scheduler ends idle.
         #[test]
-        fn every_byte_once(size in 1u64..5000, ops in prop::collection::vec((0u8..4, 0usize..8, 1u64..400, 0f64..2000.0), 1..400)) {
+        fn every_byte_once(size in 1u64..5000, ops in prop::collection::vec((0u8..5, 0usize..8, 1u64..400, 0f64..2000.0), 1..400)) {
             let mut s = Scheduler::new(cfg(), RangeSet::full(size));
             let mut leases: Vec<Lease> = Vec::new();
             let mut fetched = vec![0u8; size as usize];
@@ -309,6 +320,7 @@ mod tests {
                     0 => { if let Some(l) = s.acquire(rate) { leases.push(l); } }
                     1 if !leases.is_empty() => { let l = &leases[idx % leases.len()]; advance(l, n, &mut fetched); }
                     2 if !leases.is_empty() => { let l = leases.swap_remove(idx % leases.len()); s.release(l.id); }
+                    3 if !leases.is_empty() => { let l = &leases[idx % leases.len()]; if l.pos() >= l.end() { s.extend(l.id); } }
                     _ if !leases.is_empty() => {
                         let i = idx % leases.len();
                         if leases[i].pos() >= leases[i].end() { let l = leases.swap_remove(i); s.release(l.id); }

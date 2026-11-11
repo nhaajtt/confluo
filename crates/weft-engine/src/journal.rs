@@ -62,6 +62,17 @@ pub fn load(path: &Path) -> Option<Journal> {
     Some(Journal { done, ..j })
 }
 
+/// Whether `dir` holds an interrupted download of `url`.
+pub fn exists_for(dir: &Path, url: &str) -> bool {
+    let Ok(entries) = fs::read_dir(dir) else { return false };
+    entries
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(".weft-journal")))
+        .filter_map(|p| load(&p))
+        .any(|j| j.urls.first().map(String::as_str) == Some(url) && !j.done.is_empty())
+}
+
 pub fn remove(path: &Path) {
     let _ = fs::remove_file(path);
 }

@@ -123,6 +123,26 @@ impl RangeSet {
         Some((a, end))
     }
 
+    /// Like [`Self::take_front`], but from the span that starts exactly at `start`.
+    /// Returns the end of what was taken.
+    pub fn take_at(&mut self, start: u64, len: u64, min_left: u64) -> Option<u64> {
+        let i = self.spans.partition_point(|&(a, _)| a < start);
+        let &(a, b) = self.spans.get(i)?;
+        if a != start {
+            return None;
+        }
+        let mut end = a.saturating_add(len.max(1)).min(b);
+        if b - end < min_left {
+            end = b;
+        }
+        if end == b {
+            self.spans.remove(i);
+        } else {
+            self.spans[i].0 = end;
+        }
+        Some(end)
+    }
+
     /// Fraction of each of `cells` equal slices of `[0, size)` that is in the set, as 0..=255.
     pub fn density(&self, size: u64, cells: usize) -> Vec<u8> {
         let mut out = vec![0u8; cells];

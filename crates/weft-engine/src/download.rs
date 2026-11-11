@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::hash::{BuildHasher, Hasher};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
 
@@ -23,7 +23,7 @@ use crate::http::{self, Ask, Conn, RequestOptions};
 use crate::journal::{self, Journal};
 use crate::limit::{Limiter, RateMeter};
 use crate::name;
-use crate::probe::{Probe, probe, probe_keep};
+use crate::probe::{Head, Probe, probe, probe_stream};
 use crate::ranges::RangeSet;
 use crate::sched::{Lease, SchedConfig, Scheduler};
 use crate::tuner::Tuner;
@@ -31,6 +31,9 @@ use crate::tuner::Tuner;
 /// Stand-in end offset while the size of a file is not known.
 const UNKNOWN_END: u64 = u64::MAX / 4;
 const SAMPLE_LEN: u64 = 4096;
+const ETAG_UNKNOWN: u8 = 0;
+const ETAG_TRUSTED: u8 = 1;
+const ETAG_IGNORED: u8 = 2;
 /// How long a connection with nothing to do stays open waiting for work.
 const PARK_FOR: Duration = Duration::from_secs(4);
 
@@ -202,6 +205,8 @@ pub struct Snapshot {
     pub resumable: bool,
     pub sources: usize,
     pub steals: u64,
+    /// How long the last flush of the partial file to disk took, in milliseconds.
+    pub flush_ms: u32,
     pub notes: Vec<String>,
 }
 
@@ -214,6 +219,9 @@ struct Source {
     dead: AtomicBool,
     /// Counts link refreshes, so a failure can tell whether it used the old link.
     generation: AtomicU64,
+    /// Whether the ETag may be compared across ranges: `ETAG_UNKNOWN` until two
+    /// different ranges have been seen, then trusted or ignored for good.
+    etag_state: AtomicU8,
 }
 
 impl Source {
@@ -226,11 +234,14 @@ impl Source {
             active: AtomicUsize::new(0),
             dead: AtomicBool::new(false),
             generation: AtomicU64::new(0),
+            etag_state: AtomicU8::new(if p.etag_checked { ETAG_TRUSTED } else { ETAG_UNKNOWN }),
         }
     }
 
+    /// The validator for `If-Range`: the ETag once it is known to name the file, else the date.
     fn validator(&self) -> Option<&str> {
-        self.etag.as_deref().or(self.last_modified.as_deref())
+        let etag = self.etag.as_deref().filter(|_| self.etag_state.load(Ordering::Acquire) == ETAG_TRUSTED);
+        etag.or(self.last_modified.as_deref())
     }
 }
 
@@ -303,11 +314,15 @@ enum Exit {
     },
 }
 
-async fn worker(guard: ActiveGuard) -> Exit {
+/// One connection: take a lease, fetch it, repeat. `first` is a lease whose
+/// response is already arriving (the request the probe made).
+async fn worker(guard: ActiveGuard, mut first: Option<(Lease, Head)>) -> Exit {
     let ctx = guard.ctx.clone();
     let route = guard.route.clone();
     let source = guard.source;
-    let mut conn: Option<Conn> = {
+    let mut conn: Option<Conn> = if first.is_some() {
+        None
+    } else {
         let mut spare = ctx.spare.lock().unwrap();
         let found = spare.iter().position(|(bind, _)| *bind == route.route.bind);
         found.map(|i| spare.swap_remove(i).1)
@@ -315,28 +330,33 @@ async fn worker(guard: ActiveGuard) -> Exit {
     let mut meter = RateMeter::new(Duration::from_millis(500), Instant::now());
     let mut idle_since: Option<Instant> = None;
     loop {
-        if route.active.load(Ordering::Acquire) > route.target.load(Ordering::Acquire) {
-            return Exit::Surplus;
-        }
-        if ctx.sources[source].dead.load(Ordering::Acquire) {
-            return Exit::NoWork;
-        }
-        let rate = meter.rate(Instant::now());
-        let Some(lease) = ctx.sched.lock().unwrap().acquire(rate) else {
-            // Nothing to do right now, but a lease may come back (a failed connection,
-            // a slow one worth splitting). Wait with the connection still warm rather
-            // than paying for a new handshake later.
-            let since = *idle_since.get_or_insert_with(Instant::now);
-            if conn.is_none() || since.elapsed() > PARK_FOR {
+        let (lease, head) = if let Some((lease, head)) = first.take() {
+            (lease, Some(head))
+        } else {
+            if route.active.load(Ordering::Acquire) > route.target.load(Ordering::Acquire) {
+                return Exit::Surplus;
+            }
+            if ctx.sources[source].dead.load(Ordering::Acquire) {
                 return Exit::NoWork;
             }
-            tokio::time::sleep(Duration::from_millis(50)).await;
-            continue;
+            let rate = meter.rate(Instant::now());
+            let Some(lease) = ctx.sched.lock().unwrap().acquire(rate) else {
+                // Nothing to do right now, but a lease may come back (a failed connection,
+                // a slow one worth splitting). Wait with the connection still warm rather
+                // than paying for a new handshake later.
+                let since = *idle_since.get_or_insert_with(Instant::now);
+                if conn.is_none() || since.elapsed() > PARK_FOR {
+                    return Exit::NoWork;
+                }
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                continue;
+            };
+            (lease, None)
         };
         idle_since = None;
         let generation = ctx.sources[source].generation.load(Ordering::Acquire);
         let release = LeaseGuard { ctx: &ctx, id: lease.id };
-        let result = fetch(&ctx, &route, source, &mut conn, &lease, &mut meter).await;
+        let result = fetch(&ctx, &route, source, &mut conn, &lease, &mut meter, head).await;
         if ctx.whole && result.is_err() {
             // No ranges: whatever arrived is useless, the next attempt starts at byte 0.
             let _ = ctx.writer.truncate().await;
@@ -363,6 +383,7 @@ async fn fetch(
     conn: &mut Option<Conn>,
     lease: &Lease,
     meter: &mut RateMeter,
+    head: Option<Head>,
 ) -> Result<bool> {
     let src = &ctx.sources[source];
     let url = src.current.lock().unwrap().clone();
@@ -373,8 +394,15 @@ async fn fetch(
     } else {
         Ask { range: Some((start, Some(want_end - 1))), if_range: src.validator() }
     };
-    let fetched = http::get(conn, route.route.bind.as_ref(), &url, &ctx.opts, &ask).await?;
-    let resp = fetched.response;
+    let from_probe = head.is_some();
+    let resp = match head {
+        // The probe asked for everything from byte 0 and its answer is still arriving.
+        Some(head) => {
+            *conn = Some(head.conn);
+            head.response
+        }
+        None => http::get(conn, route.route.bind.as_ref(), &url, &ctx.opts, &ask).await?.response,
+    };
     http::check_status(&resp)?;
     let mut resp_end = UNKNOWN_END;
     if ctx.whole {
@@ -407,9 +435,18 @@ async fn fetch(
             return Err(Error::FileChanged);
         }
         if let (Some(ours), Some(theirs)) = (src.etag.as_deref(), strong(http::header_str(&resp, "etag")))
-            && ours != theirs
+            && !from_probe
         {
-            return Err(Error::FileChanged);
+            match src.etag_state.load(Ordering::Acquire) {
+                ETAG_TRUSTED if ours != theirs => return Err(Error::FileChanged),
+                // The first answer for a different range shows whether this ETag names
+                // the file (comparable from now on) or the range (never comparable).
+                ETAG_UNKNOWN => {
+                    let verdict = if ours == theirs { ETAG_TRUSTED } else { ETAG_IGNORED };
+                    src.etag_state.store(verdict, Ordering::Release);
+                }
+                _ => {}
+            }
         }
         if let (Some(ours), Some(theirs)) =
             (src.last_modified.as_deref(), http::header_str(&resp, "last-modified"))
@@ -446,6 +483,14 @@ async fn fetch(
         loop {
             let limit = lease.end().min(resp_end);
             if received >= limit {
+                // The response goes on past this lease. If the next bytes are still
+                // unassigned, keep reading them from this response: no new request.
+                if received < resp_end
+                    && received == lease.end()
+                    && ctx.sched.lock().unwrap().extend(lease.id)
+                {
+                    continue;
+                }
                 break;
             }
             let frame = match tokio::time::timeout(ctx.cfg.stall_timeout, body.frame()).await {
@@ -458,6 +503,17 @@ async fn fetch(
                 Ok(Some(Ok(f))) => f,
             };
             let Ok(mut data) = frame.into_data() else { continue };
+            // A frame can reach past the lease. Bytes cut off here are gone from the
+            // stream for good, so the lease has to grow first if this response is to
+            // be read any further.
+            let mut limit = limit;
+            while received + data.len() as u64 > limit
+                && limit < resp_end
+                && limit == lease.end()
+                && ctx.sched.lock().unwrap().extend(lease.id)
+            {
+                limit = lease.end().min(resp_end);
+            }
             data.truncate((limit - received).min(data.len() as u64) as usize);
             let n = data.len();
             if n == 0 {
@@ -667,6 +723,7 @@ pub async fn download(
         resumable: true,
         sources: 1,
         steals: 0,
+        flush_ms: 0,
         notes: notes.to_vec(),
     };
 
@@ -674,6 +731,8 @@ pub async fn download(
     let started = Instant::now();
     let mut attempt = 0u32;
     let mut spare: Vec<(Option<BindSpec>, Conn)> = Vec::new();
+    let mut head: Option<(Option<BindSpec>, Head)> = None;
+    let resuming = journal::exists_for(&spec.dir, primary_url.as_str());
     let primary = loop {
         match *command.borrow() {
             Command::Pause => return Ok(Outcome::Paused),
@@ -702,7 +761,13 @@ pub async fn download(
                     tokio::spawn(async move { Conn::open(bind.as_ref(), &url, &opts).await })
                 })
                 .collect();
-            let probed = probe_keep(r.bind.as_ref(), &primary_url, &opts).await;
+            // A fresh download lets the answer to the probe double as the first data
+            // stream. A resumed one already has the start of the file: it asks for one byte.
+            let probed = if resuming {
+                probe(r.bind.as_ref(), &primary_url, &opts).await.map(|p| (p, None))
+            } else {
+                probe_stream(r.bind.as_ref(), &primary_url, &opts).await
+            };
             let usable = probed.as_ref().is_ok_and(|(p, _)| p.ranges && p.size.is_some());
             for handle in warm {
                 if usable && handle.is_finished() {
@@ -714,8 +779,8 @@ pub async fn download(
                 }
             }
             match probed {
-                Ok((p, conn)) => {
-                    spare.extend(conn.map(|c| (r.bind.clone(), c)));
+                Ok((p, stream)) => {
+                    head = stream.map(|h| (r.bind.clone(), h));
                     found = Some(p);
                     break;
                 }
@@ -832,6 +897,7 @@ pub async fn download(
     let mut next_journal = Instant::now() + cfg.journal_interval;
     let mut journal_gap = cfg.journal_interval;
     let mut pressure_ticks = 0u32;
+    let mut flush_ms = 0u32;
     let mut refreshes: Vec<Instant> = Vec::new();
     let mut last_error: Option<String> = None;
     let mut routes_dirty = true;
@@ -1022,6 +1088,25 @@ pub async fn download(
             usize::from(has_work && !nearly_done)
         };
         let conns_total = if whole { 1 } else { cfg.conns_total };
+        if let Some((bind, stream)) = head.take()
+            && let Some((id, run)) = runs.iter().find(|(_, r)| r.shared.route.bind == bind)
+        {
+            // The answer to the probe is the file arriving from byte 0. Give it the
+            // first lease before any other connection can take those bytes.
+            let lease = ctx.sched.lock().unwrap().acquire(0.0);
+            match lease {
+                Some(lease) if lease.start == 0 => {
+                    let guard = ActiveGuard::new(ctx.clone(), run.shared.clone(), 0);
+                    let handle = workers.spawn(worker(guard, Some((lease, stream))));
+                    tasks.insert(handle.id(), (id.clone(), handle));
+                    total_active += 1;
+                    budget = budget.saturating_sub(1);
+                }
+                // Resuming somewhere else in the file: that stream is no use.
+                Some(lease) => ctx.sched.lock().unwrap().release(lease.id),
+                None => {}
+            }
+        }
         for id in &order {
             let Some(run) = runs.get_mut(id) else { continue };
             let bytes = run.shared.bytes.load(Ordering::Relaxed);
@@ -1053,7 +1138,7 @@ pub async fn download(
                     .min_by_key(|(_, s)| s.active.load(Ordering::Acquire))
                     .map_or(0, |(i, _)| i);
                 let guard = ActiveGuard::new(ctx.clone(), run.shared.clone(), source);
-                let handle = workers.spawn(worker(guard));
+                let handle = workers.spawn(worker(guard, None));
                 tasks.insert(handle.id(), (id.clone(), handle));
                 active += 1;
                 total_active += 1;
@@ -1088,6 +1173,7 @@ pub async fn download(
                 Err(e) => break 'run Err(Error::Disk(e)),
             }
             // A slow flush (spinning disk) must not eat the disk's time: back off.
+            flush_ms = t.elapsed().as_millis().min(u128::from(u32::MAX)) as u32;
             journal_gap = cfg.journal_interval.max(t.elapsed() * 5).min(Duration::from_secs(30));
             next_journal = Instant::now() + journal_gap;
         }
@@ -1174,6 +1260,7 @@ pub async fn download(
             resumable: !whole,
             sources: ctx.sources.iter().filter(|s| !s.dead.load(Ordering::Acquire)).count(),
             steals,
+            flush_ms,
             notes: notes.clone(),
         });
     };

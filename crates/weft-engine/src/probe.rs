@@ -1,11 +1,15 @@
 //! Asking a server what a link points to and what it supports.
 
-use hyper::StatusCode;
+use std::time::Duration;
+
+use http_body_util::BodyExt;
+use hyper::body::Incoming;
+use hyper::{Response, StatusCode};
 use url::Url;
 use weft_net::BindSpec;
 
 use crate::error::{Error, Result};
-use crate::http::{self, Ask, Conn, RequestOptions};
+use crate::http::{self, Ask, Conn, Fetched, RequestOptions};
 use crate::name;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,27 +19,30 @@ pub struct Probe {
     pub size: Option<u64>,
     /// The server answers byte-range requests correctly.
     pub ranges: bool,
-    /// Strong ETag, only when the server gives the same one for every range.
+    /// Strong ETag as sent with the probe response.
     pub etag: Option<String>,
+    /// Whether the ETag was seen to be the same for two different ranges. Some
+    /// servers compute an ETag per range; comparing those across requests would
+    /// look like the file changing.
+    pub etag_checked: bool,
     pub last_modified: Option<String>,
     pub file_name: Option<String>,
     /// SHA-256 advertised by the server, lowercase hex.
     pub sha256: Option<String>,
 }
 
-impl Probe {
-    /// The validator to send in `If-Range`.
-    pub fn validator(&self) -> Option<&str> {
-        self.etag.as_deref().or(self.last_modified.as_deref())
-    }
+/// A response that is already delivering the file from byte 0, with its connection.
+pub struct Head {
+    pub conn: Conn,
+    pub response: Response<Incoming>,
 }
 
-fn strong_etag(v: Option<&str>) -> Option<String> {
+pub(crate) fn strong_etag(v: Option<&str>) -> Option<String> {
     let v = v?.trim();
     (!v.starts_with("W/") && v.len() >= 2).then(|| v.to_string())
 }
 
-fn advertised_sha256(resp: &hyper::Response<hyper::body::Incoming>) -> Option<String> {
+fn advertised_sha256(resp: &Response<Incoming>) -> Option<String> {
     use base64::Engine as _;
     let hex_ok = |s: &str| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit());
     for name in ["x-checksum-sha256", "x-amz-meta-sha256", "x-goog-meta-sha256"] {
@@ -62,48 +69,37 @@ fn advertised_sha256(resp: &hyper::Response<hyper::body::Incoming>) -> Option<St
     None
 }
 
-/// Probes `url` through `bind`. Uses a one-byte ranged GET rather than HEAD,
-/// because many file hosts answer HEAD differently from GET.
-pub async fn probe(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) -> Result<Probe> {
-    probe_keep(bind, url, opts).await.map(|(p, _)| p)
-}
-
-/// Reads a (tiny) response body to its end so the connection can be used again.
-async fn drain(resp: hyper::Response<hyper::body::Incoming>) -> bool {
-    use http_body_util::BodyExt;
-    matches!(
-        tokio::time::timeout(std::time::Duration::from_secs(2), resp.into_body().collect()).await,
-        Ok(Ok(_))
-    )
-}
-
-/// Like [`probe`], and also hands back the connection it used when that connection
-/// is still good, so the first range request does not pay for a second handshake.
-pub async fn probe_keep(
+/// Sends the probing GET. Many file hosts answer HEAD differently from GET, so
+/// a ranged GET is used; hosts that reject ranges outright get a plain GET.
+async fn ask(
+    slot: &mut Option<Conn>,
     bind: Option<&BindSpec>,
     url: &Url,
     opts: &RequestOptions,
-) -> Result<(Probe, Option<Conn>)> {
-    let mut slot = None;
-    let ask = Ask { range: Some((0, Some(0))), if_range: None };
-    let mut fetched = http::get(&mut slot, bind, url, opts, &ask).await?;
-    let mut status = fetched.response.status();
-    if matches!(status.as_u16(), 400 | 403 | 405 | 501) {
-        // Some hosts reject ranged requests outright but serve the plain file.
-        slot = None;
-        fetched = http::get(&mut slot, bind, url, opts, &Ask::default()).await?;
-        status = fetched.response.status();
+    last: Option<u64>,
+) -> Result<Fetched> {
+    let fetched = http::get(slot, bind, url, opts, &Ask { range: Some((0, last)), if_range: None }).await?;
+    if matches!(fetched.response.status().as_u16(), 400 | 403 | 405 | 501) {
+        *slot = None;
+        return http::get(slot, bind, url, opts, &Ask::default()).await;
     }
+    Ok(fetched)
+}
+
+/// Reads what the response says about the file. `last` is the last byte asked for.
+fn describe(requested: &Url, fetched: &Fetched, last: Option<u64>) -> Result<Probe> {
     let resp = &fetched.response;
+    let status = resp.status();
     let file_name = http::header_str(resp, "content-disposition")
         .and_then(name::from_content_disposition)
         .or_else(|| name::from_url(&fetched.url))
-        .or_else(|| name::from_url(url));
+        .or_else(|| name::from_url(requested));
     let mut out = Probe {
         url: fetched.url.clone(),
         size: None,
         ranges: false,
         etag: strong_etag(http::header_str(resp, "etag")),
+        etag_checked: false,
         last_modified: http::header_str(resp, "last-modified").map(str::to_owned),
         file_name,
         sha256: advertised_sha256(resp),
@@ -114,44 +110,71 @@ pub async fn probe_keep(
             http::header_str(resp, "content-range").and_then(|v| v.rsplit('/').next()?.trim().parse().ok());
         if total == Some(0u64) {
             out.size = Some(0);
-            return Ok((out, None));
+            return Ok(out);
         }
     }
     http::check_status(resp)?;
     if status == StatusCode::PARTIAL_CONTENT {
         match http::content_range(resp) {
-            Some((0, 0, Some(total))) => {
+            Some((0, b, Some(total))) if total > 0 && b == last.unwrap_or(total - 1).min(total - 1) => {
                 out.size = Some(total);
                 out.ranges = true;
             }
-            // A 206 that does not describe the byte we asked for cannot be trusted.
+            // A 206 that does not describe what was asked for cannot be trusted.
             _ => return Err(Error::Protocol("unusable Content-Range in probe".into())),
         }
     } else {
         out.size = http::content_length(resp);
     }
+    Ok(out)
+}
+
+/// Reads a (tiny) response body to its end so the connection can be used again.
+async fn drain(resp: Response<Incoming>) -> bool {
+    matches!(tokio::time::timeout(Duration::from_secs(2), resp.into_body().collect()).await, Ok(Ok(_)))
+}
+
+/// Probes `url` through `bind` by asking for its first byte, then a second
+/// byte to learn whether the ETag can be trusted across ranges.
+pub async fn probe(bind: Option<&BindSpec>, url: &Url, opts: &RequestOptions) -> Result<Probe> {
+    let mut slot = None;
+    let fetched = ask(&mut slot, bind, url, opts, Some(0)).await?;
+    let mut out = describe(url, &fetched, Some(0))?;
     if !out.ranges {
-        // The whole file is on its way on this connection; it cannot be reused.
-        return Ok((out, None));
+        return Ok(out);
     }
     if !drain(fetched.response).await {
         slot = None;
     }
     if out.etag.is_some() && out.size.is_some_and(|s| s > 1) {
-        // Some servers compute an ETag per range. Comparing those across requests
-        // would look like the file changing, so such ETags are ignored.
-        let ask = Ask { range: Some((1, Some(1))), if_range: None };
-        match http::get(&mut slot, bind, &out.url, opts, &ask).await {
-            Ok(second) => {
-                if strong_etag(http::header_str(&second.response, "etag")) != out.etag {
-                    out.etag = None;
-                }
-                if !drain(second.response).await {
-                    slot = None;
-                }
+        let second = Ask { range: Some((1, Some(1))), if_range: None };
+        match http::get(&mut slot, bind, &out.url, opts, &second).await {
+            Ok(f) if strong_etag(http::header_str(&f.response, "etag")) == out.etag => {
+                out.etag_checked = true
             }
-            Err(_) => slot = None,
+            Ok(_) => out.etag = None,
+            Err(_) => {}
         }
     }
-    Ok((out, slot))
+    Ok(out)
+}
+
+/// Probes `url` by asking for the whole file from byte 0. The answer both
+/// describes the file and *is* the first data stream, so no time is spent on a
+/// separate round trip before the download starts.
+pub async fn probe_stream(
+    bind: Option<&BindSpec>,
+    url: &Url,
+    opts: &RequestOptions,
+) -> Result<(Probe, Option<Head>)> {
+    let mut slot = None;
+    let fetched = ask(&mut slot, bind, url, opts, None).await?;
+    let out = describe(url, &fetched, None)?;
+    let head = match (slot, fetched.response.status()) {
+        (Some(conn), StatusCode::OK | StatusCode::PARTIAL_CONTENT) if out.size != Some(0) => {
+            Some(Head { conn, response: fetched.response })
+        }
+        _ => None,
+    };
+    Ok((out, head))
 }

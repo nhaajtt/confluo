@@ -162,6 +162,13 @@ pub async fn connect_any(
     const STAGGER: Duration = Duration::from_millis(250);
     let candidates: Vec<SocketAddr> =
         interleave_families(addrs).into_iter().filter(|a| bind.is_none_or(|b| b.supports(a))).collect();
+    // Without a routable IPv6 address, every IPv6 attempt only costs the stagger delay.
+    let candidates: Vec<SocketAddr> =
+        if bind.is_none() && candidates.iter().any(SocketAddr::is_ipv4) && !has_global_v6() {
+            candidates.into_iter().filter(SocketAddr::is_ipv4).collect()
+        } else {
+            candidates
+        };
     if candidates.is_empty() {
         return Err(io::Error::new(io::ErrorKind::AddrNotAvailable, "no address usable on this interface"));
     }
@@ -188,6 +195,23 @@ pub async fn connect_any(
         }
     }
     Err(last_err.unwrap_or_else(|| io::Error::new(io::ErrorKind::TimedOut, "connect timed out")))
+}
+
+/// Whether any interface has a routable IPv6 address (cached for a few seconds).
+fn has_global_v6() -> bool {
+    use std::sync::Mutex;
+    use std::time::Instant;
+    static CACHE: Mutex<Option<(Instant, bool)>> = Mutex::new(None);
+    let mut cache = CACHE.lock().unwrap();
+    if let Some((at, value)) = *cache
+        && at.elapsed() < Duration::from_secs(5)
+    {
+        return value;
+    }
+    let global = |i: &Interface| i.v6().is_some_and(|a| (a.segments()[0] & 0xe000) == 0x2000);
+    let value = usable_interfaces().is_ok_and(|l| l.iter().any(global));
+    *cache = Some((Instant::now(), value));
+    value
 }
 
 fn interleave_families(addrs: &[SocketAddr]) -> Vec<SocketAddr> {

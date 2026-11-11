@@ -73,7 +73,26 @@ fn assert_file(run: &Run, seed: u64, size: u64) -> std::path::PathBuf {
     };
     assert_eq!(*got, size);
     let data = std::fs::read(path).unwrap();
-    assert!(data == content(seed, size), "file content differs");
+    let want = content(seed, size);
+    if data != want {
+        // Report where the file is wrong, as ranges, to make the failure diagnosable.
+        let mut bad: Vec<(usize, usize)> = Vec::new();
+        for (i, (x, y)) in data.iter().zip(&want).enumerate() {
+            if x != y {
+                match bad.last_mut() {
+                    Some((_, end)) if *end == i => *end = i + 1,
+                    _ => bad.push((i, i + 1)),
+                }
+            }
+        }
+        panic!(
+            "file content differs in {} ranges, first {:?}, len {} vs {}",
+            bad.len(),
+            &bad[..bad.len().min(6)],
+            data.len(),
+            want.len()
+        );
+    }
     let dir = path.parent().unwrap();
     let leftovers: Vec<_> = std::fs::read_dir(dir)
         .unwrap()
@@ -95,10 +114,11 @@ async fn ranged_download_is_exact() {
     let r = run(spec(dir.path(), &[srv.url()])).await;
     let path = assert_file(&r, 11, size);
     assert_eq!(path.file_name().unwrap(), "data.bin");
-    // The server counts what it pushed into the socket. The only bytes beyond the file are
-    // the probe and what was still in flight when a connection handed over its tail.
+    // The server counts what it pushed into the socket. Beyond the file itself that is
+    // only what was in flight when a stream stopped at the edge of the next share,
+    // and loopback (no delay, large buffers) is the worst case for that.
     let sent = srv.stats().body_bytes.load(Ordering::Relaxed);
-    assert!(sent <= size + size / 20, "sent {sent} for a {size} byte file");
+    assert!(sent <= size + size / 6, "sent {sent} for a {size} byte file");
     assert!(srv.stats().peak_active.load(Ordering::Relaxed) > 1, "expected parallel connections");
 }
 
@@ -340,7 +360,9 @@ async fn checksum_catches_a_corrupted_byte() {
         size,
         seed: 91,
         corrupt_at: Some(size / 2),
-        corrupt_count: 1,
+        // The first stream is asked for the whole file and so "covers" the byte without
+        // ever reaching it; the connection that really fetches it is the second.
+        corrupt_count: 2,
         ..Default::default()
     })
     .await;
@@ -562,4 +584,26 @@ async fn too_many_requests_switches_to_long_requests() {
     // With 64 KiB pieces the remaining 22 MiB would take hundreds of requests.
     let after = srv.stats().requests.load(Ordering::Relaxed) - requests_at_trip;
     assert!(after < 60, "{after} requests after the server asked for fewer");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn server_allowing_one_connection_is_served_by_the_first_stream() {
+    // The other connections are refused, so their shares come back unassigned and
+    // the first stream grows into them across many frame boundaries.
+    let size = 24 * MIB + 321;
+    let srv = Server::local(Behavior {
+        size,
+        seed: 192,
+        max_conns: Some(1),
+        rate_total: Some(12 * MIB),
+        ..Default::default()
+    })
+    .await;
+    let dir = tempfile::tempdir().unwrap();
+    let c = Config { give_up_after: Some(Duration::from_secs(20)), ..Default::default() };
+    let r = run_with(spec(dir.path(), &[srv.url()]), c, vec![Route::system()]).await;
+    assert_file(&r, 192, size);
+    let served = srv.stats().range_requests.load(Ordering::Relaxed);
+    assert!(served <= 3, "{served} range requests served; the first stream should have carried the file");
+    assert!(r.snaps.iter().any(|s| s.verdict == Verdict::ServerRefusing));
 }
