@@ -165,6 +165,8 @@ struct Item {
     control: Option<watch::Sender<Command>>,
     /// Remove the item (and optionally its file) once its task has stopped.
     remove_when_stopped: bool,
+    /// Resume arrived while a pause was still stopping the download.
+    resume_when_stopped: bool,
 }
 
 impl Item {
@@ -253,7 +255,14 @@ impl Manager {
                     .and_then(|sealed| secret::open(&sealed))
                     .and_then(|plain| serde_json::from_slice(&plain).ok())
                     .unwrap_or_default();
-                Item { rec, secret_headers, snapshot: None, control: None, remove_when_stopped: false }
+                Item {
+                    rec,
+                    secret_headers,
+                    snapshot: None,
+                    control: None,
+                    remove_when_stopped: false,
+                    resume_when_stopped: false,
+                }
             })
             .collect();
         let book = Arc::new(RouteBook::default());
@@ -376,8 +385,14 @@ impl Manager {
                 finished_at: None,
                 shown_name,
             };
-            let item =
-                Item { rec, secret_headers, snapshot: None, control: None, remove_when_stopped: false };
+            let item = Item {
+                rec,
+                secret_headers,
+                snapshot: None,
+                control: None,
+                remove_when_stopped: false,
+                resume_when_stopped: false,
+            };
             let view = item.view();
             st.items.push(item);
             view
@@ -393,6 +408,7 @@ impl Manager {
     pub fn pause(&self, id: u64) {
         self.inner.change(id, |item| match item.rec.status {
             Status::Running => {
+                item.resume_when_stopped = false;
                 if let Some(c) = &item.control {
                     let _ = c.send(Command::Pause);
                 }
@@ -408,6 +424,11 @@ impl Manager {
             if matches!(item.rec.status, Status::Paused | Status::Failed) {
                 item.rec.status = Status::Queued;
                 item.rec.error = None;
+            } else if item.rec.status == Status::Running
+                && item.control.as_ref().is_some_and(|c| *c.borrow() == Command::Pause)
+            {
+                // The pause is still stopping the download: queue it again once it has.
+                item.resume_when_stopped = true;
             }
         });
     }
@@ -593,6 +614,7 @@ impl Inner {
                             item.rec.done = size;
                             item.rec.finished_at = Some(now());
                         }
+                        Ok(Outcome::Paused) if item.resume_when_stopped => item.rec.status = Status::Queued,
                         Ok(Outcome::Paused) => item.rec.status = Status::Paused,
                         Ok(Outcome::Cancelled) => item.rec.status = Status::Paused,
                         Err(e) => {
@@ -600,6 +622,7 @@ impl Inner {
                             item.rec.error = Some(e.to_string());
                         }
                     }
+                    item.resume_when_stopped = false;
                     if item.remove_when_stopped {
                         st.items.remove(pos);
                         dropped = true;

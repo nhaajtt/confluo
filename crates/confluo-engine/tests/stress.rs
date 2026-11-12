@@ -233,6 +233,32 @@ async fn pause_resume_storm_keeps_the_file_exact() {
     assert!(sent < size * 2, "sent {sent} bytes for a {size} byte file");
 }
 
+/// A pause takes a moment to stop the download. A resume that arrives in that
+/// moment must still be honoured.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn resume_right_after_pause_is_not_lost() {
+    let size = 4 * MIB;
+    let srv =
+        Server::local(Behavior { size, seed: 67, rate_total: Some(4 * MIB), ..Default::default() }).await;
+    let state = tempfile::tempdir().unwrap();
+    let files = tempfile::tempdir().unwrap();
+    let m = Manager::open(state.path(), files.path()).unwrap();
+    m.set_settings(settings(files.path(), 2));
+    let id = m
+        .add(NewDownload {
+            urls: vec![srv.url()],
+            file_name: Some("quick.bin".into()),
+            ..NewDownload::default()
+        })
+        .unwrap();
+    wait_for(&m, 20, "the download to start", |m| m.list().iter().all(|i| i.done > 0)).await;
+    m.pause(id);
+    m.resume(id);
+    wait_for(&m, 40, "the download to finish", |m| m.list().iter().all(|i| i.status == Status::Completed))
+        .await;
+    assert_same(&files.path().join("quick.bin"), 67, size);
+}
+
 /// Offsets past 4 GiB: nothing may be kept in 32 bits anywhere between the
 /// request, the scheduler, the journal and the disk. Slow; run with `--ignored`.
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
