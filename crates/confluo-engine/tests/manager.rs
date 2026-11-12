@@ -91,7 +91,13 @@ async fn pause_resume_remove_and_restart() {
             })
             .unwrap();
         drop_me = m.add(new(srv.url(), "drop.bin")).unwrap();
-        wait_for(&m, "both to receive data", |m| m.list().iter().all(|i| i.done > 256 * 1024)).await;
+        // The kept download gets half the file first, so that "did not start over" can be
+        // told apart from the bytes a server pushes into sockets that are then closed.
+        wait_for(&m, "both to receive data", |m| {
+            m.list().iter().all(|i| i.done > 256 * 1024)
+                && m.list().iter().any(|i| i.id == keep && i.done > 4 * MIB)
+        })
+        .await;
 
         m.pause(keep);
         wait_for(&m, "pause", |m| m.list().iter().any(|i| i.id == keep && i.status == Status::Paused)).await;
@@ -119,7 +125,10 @@ async fn pause_resume_remove_and_restart() {
     wait_for(&m, "completion after restart", |m| m.list()[0].status == Status::Completed).await;
     assert!(std::fs::read(files.path().join("keep.bin")).unwrap() == content(9, 8 * MIB));
     let again = srv.stats().body_bytes.load(std::sync::atomic::Ordering::Relaxed) - sent_before;
-    assert!(again < 8 * MIB, "the restart downloaded everything again ({again} bytes)");
+    // What the server counts as sent includes data left in the buffers of connections that
+    // were handed over mid-response; on a fast loopback that is up to a few megabytes.
+    let allowed = 8 * MIB - before + 3 * MIB;
+    assert!(again < allowed, "the restart fetched {again} bytes with {before} already on disk");
 
     assert!(m.add(new("ftp://example.com/x".into(), "x")).is_err());
     assert!(m.add(new("file:///C:/Windows/win.ini".into(), "x")).is_err());
