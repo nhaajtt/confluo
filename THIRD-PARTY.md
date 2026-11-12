@@ -20,3 +20,9 @@ versions are pinned in `Cargo.lock` and `app/pnpm-lock.yaml`.
 | Geist and Geist Mono typefaces | SIL Open Font License 1.1 |
 
 Run `cargo tree --workspace --edges normal` for the complete list.
+
+## Images
+
+The octopus in the app icon, the extension icon and the site images is cut out of a photograph of
+a dumbo octopus (*Grimpoteuthis*) taken by the NOAA Okeanos Explorer programme, which is in the
+public domain: <https://commons.wikimedia.org/wiki/File:Dumbo-hires_(cropped).jpg>.

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/app-icon.png" width="112" alt="Confluo: an octopus in neon yellow and pink">
+  <img src="app/app-icon.png" width="112" alt="Confluo: a dumbo octopus on neon yellow and pink">
 </p>
 
 <h1 align="center">Confluo</h1>

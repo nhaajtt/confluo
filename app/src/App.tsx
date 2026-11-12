@@ -1,4 +1,4 @@
-import mark from "../app-icon.svg";
+import mark from "./mark.png";
 import { createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { api, type Item, type Networks, type Settings } from "./api";
