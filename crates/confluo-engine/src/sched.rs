@@ -269,6 +269,11 @@ impl Scheduler {
             2.0 / 3.0
         };
         let floor = self.steal_floor(remaining as f64 / victim.rate.max(1.0));
+        // The holder keeps reading while this runs, so the lease can be shorter now
+        // than when it was picked: then it is no longer worth splitting.
+        if remaining < 2 * floor.max(1) {
+            return None;
+        }
         let keep = ((remaining as f64 * share) as u64).clamp(floor, remaining - floor);
         let split = pos + keep;
         victim.end.store(split, Ordering::Release);

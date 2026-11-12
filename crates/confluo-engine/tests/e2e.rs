@@ -277,15 +277,41 @@ async fn pause_then_resume_fetches_only_the_rest() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn killed_mid_download_resumes_from_the_journal() {
-    let size = 6 * MIB;
+    let size = 12 * MIB;
     let srv =
         Server::local(Behavior { size, seed: 61, rate_total: Some(3 * MIB), ..Default::default() }).await;
     let dir = tempfile::tempdir().unwrap();
     let s = spec(dir.path(), &[srv.url()]);
+    let journal_written = || {
+        std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .find(|e| e.file_name().to_string_lossy().ends_with(".confluo-journal"))
+            .and_then(|e| e.metadata().ok()?.modified().ok())
+    };
+    // The journal is written less often when the disk is slow to flush, so the kill
+    // follows a journal write instead of a fixed delay: what is lost is then the
+    // work since that write, whatever the disk.
+    let started = Instant::now();
+    let journal_saved = async {
+        let mut last = None;
+        loop {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            let now = journal_written();
+            if now.is_some() && now != last {
+                if started.elapsed() > Duration::from_millis(600) {
+                    break;
+                }
+                last = now;
+            }
+        }
+    };
     // Dropping the future mid-flight is the in-process equivalent of a crash:
     // no pause, no final flush, no final journal.
-    let killed = tokio::time::timeout(Duration::from_millis(1200), run(s.clone())).await;
-    assert!(killed.is_err(), "download finished before it could be killed");
+    tokio::select! {
+        _ = run(s.clone()) => panic!("download finished before it could be killed"),
+        () = journal_saved => {}
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
     let journal = std::fs::read_dir(dir.path())
         .unwrap()
@@ -298,8 +324,8 @@ async fn killed_mid_download_resumes_from_the_journal() {
     assert_file(&r, 61, size);
     let again = srv.stats().body_bytes.load(Ordering::Relaxed) - before;
     assert!(again < size, "nothing was recovered: fetched {again} of {size} again");
-    // The journal is flushed several times a second, so about a second of work
-    // (3 MiB here) is the most a crash can cost.
+    // Killed right after a journal write, a crash costs the work done while that
+    // write was on its way to the disk: well under a second of it (3 MiB here).
     assert!(before + again < size + 3 * MIB, "lost too much: {before} + {again} for {size}");
 }
 

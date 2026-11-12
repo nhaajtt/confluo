@@ -299,7 +299,8 @@ struct LeaseGuard<'a> {
 
 impl Drop for LeaseGuard<'_> {
     fn drop(&mut self) {
-        self.ctx.sched.lock().unwrap().release(self.id);
+        // Runs during unwinding too: a second panic here would abort the process.
+        self.ctx.sched.lock().unwrap_or_else(std::sync::PoisonError::into_inner).release(self.id);
     }
 }
 
