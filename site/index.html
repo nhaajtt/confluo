@@ -69,24 +69,13 @@
     </aside>
   </section>
 
-  <div class="lab-stage is-plain" id="demo">
+  <div class="lab-stage is-plain" id="film">
     <figure class="g-device">
-      <figcaption><i></i><i></i><i></i><span data-vi="Live flow · mô phỏng">Live flow · simulated</span><b>● LIVE</b></figcaption>
-      <div class="flow-body">
-        <div class="flow-top">
-          <canvas id="threads" width="520" height="190" role="img" aria-label="Three networks drawn as threads that join into one stream"></canvas>
-          <div class="flow-read">
-            <span class="flow-lbl" data-vi="Tổng tốc độ">Total speed</span>
-            <span class="flow-big"><b id="total">0.0</b><small>MiB/s</small></span>
-            <span class="flow-sub" id="avgpeak">avg 0.0 · peak 0.0</span>
-            <span class="flow-sub is-limit" data-vi="giới hạn: đường mạng">limit: network path</span>
-          </div>
-        </div>
-        <p class="flow-lbl" data-vi="Lưu lượng · 60 giây gần nhất">Throughput · last 60 s</p>
-        <canvas id="chart" class="flow-chart" width="900" height="150" role="img" aria-label="Stacked chart of the speed each network carried over the last minute"></canvas>
-      </div>
+      <figcaption><i></i><i></i><i></i><span data-vi="Quay trong app, tải file 8 GiB từ máy chủ thử">Recorded in the app, an 8 GiB file from the test server</span></figcaption>
+      <video controls muted playsinline preload="none" poster="media/demo-poster.jpg">
+        <source src="media/demo.mp4" type="video/mp4" />
+      </video>
     </figure>
-    <p class="flow-cap" data-vi="Minh hoạ màn hình “Live flow” trong app. Số ở đây là mô phỏng; số đo thật ở phần bên dưới.">An illustration of the app's “Live flow” view. These numbers are simulated; the measured ones are further down.</p>
   </div>
 
   <section class="tl" id="timeline" aria-label="Timeline">
@@ -160,16 +149,27 @@
       </div>
     </section>
 
-    <section class="g-band reveal" id="film">
-      <p class="g-kicker" data-vi="PHIM · 30 GIÂY">FILM · 30 SECONDS</p>
-      <h2 class="g-title" data-vi="Xem nó chạy thật">Watch it run</h2>
+    <section class="g-band reveal" id="demo">
+      <p class="g-kicker" data-vi="DÒNG CHẢY · MÔ PHỎNG">LIVE FLOW · SIMULATED</p>
+      <h2 class="g-title" data-vi="Ba mạng, một dòng">Three networks, one stream</h2>
       <div class="lab-stage is-plain is-film">
         <figure class="g-device">
-          <figcaption><i></i><i></i><i></i><span data-vi="Quay trong app, tải file 8 GiB từ máy chủ thử">Recorded in the app, an 8 GiB file from the test server</span></figcaption>
-          <video controls muted playsinline preload="none" poster="media/demo-poster.jpg">
-            <source src="media/demo.mp4" type="video/mp4" />
-          </video>
+          <figcaption><i></i><i></i><i></i><span data-vi="Live flow · mô phỏng">Live flow · simulated</span><b>● LIVE</b></figcaption>
+          <div class="flow-body">
+            <div class="flow-top">
+              <canvas id="threads" width="520" height="190" role="img" aria-label="Three networks drawn as threads that join into one stream"></canvas>
+              <div class="flow-read">
+                <span class="flow-lbl" data-vi="Tổng tốc độ">Total speed</span>
+                <span class="flow-big"><b id="total">0.0</b><small>MiB/s</small></span>
+                <span class="flow-sub" id="avgpeak">avg 0.0 · peak 0.0</span>
+                <span class="flow-sub is-limit" data-vi="giới hạn: đường mạng">limit: network path</span>
+              </div>
+            </div>
+            <p class="flow-lbl" data-vi="Lưu lượng · 60 giây gần nhất">Throughput · last 60 s</p>
+            <canvas id="chart" class="flow-chart" width="900" height="150" role="img" aria-label="Stacked chart of the speed each network carried over the last minute"></canvas>
+          </div>
         </figure>
+        <p class="flow-cap" data-vi="Minh hoạ màn hình “Live flow” trong app. Số ở đây là mô phỏng; số đo thật ở phần bên dưới.">An illustration of the app's “Live flow” view. These numbers are simulated; the measured ones are further down.</p>
       </div>
     </section>
 

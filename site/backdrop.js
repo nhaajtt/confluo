@@ -1668,7 +1668,7 @@ class Threads {
 
 /* ---------- layer in the desk stage ---------- */
 
-const stage = document.getElementById('demo');
+const stage = document.getElementById('film');
 const FADE_MS = 520;
 let layer = null;
 let threads = null;

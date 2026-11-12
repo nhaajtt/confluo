@@ -204,6 +204,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .bd-threads-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .lab-stage.is-plain { padding-block: clamp(48px, 9vw, 110px); }
 .lab-stage .flow-cap { color: #8d9196; }
+.lab-stage.is-film .flow-cap { color: var(--tt); }
 
 .g-device video { display: block; width: 100%; height: auto; aspect-ratio: 31 / 20; object-fit: cover; border-radius: 12px; background: #0a0a0c; }
 .lab-stage.is-film { padding-block: clamp(28px, 5vw, 56px); border: 1px solid var(--border); border-radius: 18px; }

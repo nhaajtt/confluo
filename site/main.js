@@ -226,11 +226,11 @@ addEventListener("pointerup", () => {
 // --- jump palette: Ctrl+K, type to filter, arrows and Enter
 const JUMPS = [
   ["#top", "Top", "Đầu trang"],
-  ["#demo", "Live flow", "Dòng chảy trực tiếp"],
+  ["#film", "The 30-second film", "Phim 30 giây"],
   ["#timeline", "Timeline", "Dòng thời gian"],
   ["#features", "What it does", "Làm được gì"],
   ["#how", "Three steps", "Ba bước"],
-  ["#film", "The 30-second film", "Phim 30 giây"],
+  ["#demo", "Live flow", "Dòng chảy trực tiếp"],
   ["#numbers", "Measured numbers", "Số đo"],
   ["#private", "Privacy", "Riêng tư"],
   ["#faq", "FAQ", "FAQ"],
