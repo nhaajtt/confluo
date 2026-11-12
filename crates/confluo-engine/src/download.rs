@@ -8,13 +8,13 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
 
 use bytes::BytesMut;
+use confluo_net::BindSpec;
 use http_body_util::BodyExt;
 use hyper::StatusCode;
 use serde::Serialize;
 use tokio::sync::watch;
 use tokio::task::{AbortHandle, Id, JoinSet};
 use url::Url;
-use confluo_net::BindSpec;
 
 use crate::disk::{self, DiskWriter};
 use crate::error::{Error, Result};

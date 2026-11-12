@@ -6,11 +6,11 @@ use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use tokio::sync::watch;
-use url::Url;
 use confluo_engine::limit::Limiter;
 use confluo_engine::routes::{RouteBook, Selection, watch_routes};
 use confluo_engine::{Checksum, Command, Config, Outcome, Route, Snapshot, Spec, download};
+use tokio::sync::watch;
+use url::Url;
 
 const USAGE: &str = "\
 confluo - multi-network download engine

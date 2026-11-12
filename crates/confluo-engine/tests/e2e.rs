@@ -6,13 +6,13 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
-use sha2::{Digest, Sha256};
-use tokio::sync::watch;
-use url::Url;
 use confluo_engine::limit::Limiter;
 use confluo_engine::sched::SchedConfig;
 use confluo_engine::{Checksum, Command, Config, Error, Outcome, Route, Snapshot, Spec, Verdict, download};
 use confluo_testsrv::{Behavior, Server, content};
+use sha2::{Digest, Sha256};
+use tokio::sync::watch;
+use url::Url;
 
 const MIB: u64 = 1 << 20;
 

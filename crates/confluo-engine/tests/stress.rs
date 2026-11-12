@@ -8,12 +8,12 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
-use tokio::sync::watch;
-use url::Url;
 use confluo_engine::limit::Limiter;
 use confluo_engine::manager::{Manager, Networks, NewDownload, Settings, Status};
 use confluo_engine::{Command, Config, Outcome, Route, Snapshot, Spec, download};
 use confluo_testsrv::{Behavior, Server, content, fill};
+use tokio::sync::watch;
+use url::Url;
 
 const MIB: u64 = 1 << 20;
 

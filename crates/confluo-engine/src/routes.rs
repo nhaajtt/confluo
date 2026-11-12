@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use tokio::sync::watch;
 use confluo_net::{Interface, Medium};
+use tokio::sync::watch;
 
 use crate::download::Route;
 use crate::limit::Limiter;

@@ -9,10 +9,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager as _, State};
 use confluo_bridge::{Bridge, Offer};
 use confluo_engine::manager::{Event, ItemView, Manager, NewDownload, Settings};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, Manager as _, State};
 
 struct App {
     manager: Manager,
@@ -245,7 +245,8 @@ fn main() {
                     m.add(offer_to_download(offer, !auto.load(Ordering::Relaxed)))
                 });
                 // The bridge is optional: without it the app still works, the extension does not.
-                let bridge = confluo_bridge::serve(token.clone(), &confluo_bridge::PORTS, on_offer).await.ok();
+                let bridge =
+                    confluo_bridge::serve(token.clone(), &confluo_bridge::PORTS, on_offer).await.ok();
                 Ok::<_, std::io::Error>((manager, bridge))
             })?;
             forward_events(app.handle().clone(), &manager);

@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use base64::Engine as _;
 use bytes::Bytes;
+use confluo_net::BindSpec;
 use http_body_util::Empty;
 use hyper::body::Incoming;
 use hyper::client::conn::http1::SendRequest;
@@ -21,7 +22,6 @@ use tokio_rustls::TlsConnector;
 use tokio_rustls::rustls::pki_types::ServerName;
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 use url::{Host, Url};
-use confluo_net::BindSpec;
 
 use crate::error::{Error, Result};
 
