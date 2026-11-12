@@ -623,12 +623,12 @@ const PROPS = {
   fringe: 78,
   speed: 16,
   scale: 288,
-  baseColor: '#E4FF3D',
-  accentColor: '#FF3FA4',
+  baseColor: '#FF7A45',
+  accentColor: '#2DD4BF',
 };
 const ADV = {
   seed: 1, lean: 100, waist: 22, nearStrands: 50, occupancy: 55, streakLength: 18, streakWidth: 1,
-  defocus: 300, coreColor: '#FFFCE0', violetColor: '#FF4FB0', midColor: '#8A8468', hazeColor: '#4A2440',
+  defocus: 300, coreColor: '#FFE9DC', violetColor: '#1FB5A8', midColor: '#8A8468', hazeColor: '#143C40',
   dustColor: '#D8D0C8', cyanShare: 15, violetShare: 10, exposure: 140, bloom: 75, haze: 60, fibres: 100,
   fieldLight: 16, dust: 4, stars: 0, grain: 0, vignette: 10, flowSpeed: 40, flicker: 12, breathe: 6,
   breathePeriod: 6000, sway: 30, parallax: 30, followTime: 400, returnTime: 650, ringSpeed: 70, sparks: 100,

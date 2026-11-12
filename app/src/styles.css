@@ -1,6 +1,6 @@
 /* Confluo. The same visual system as nhaajt.com and its product pages: a deep ground with
    colour far behind it, hairline borders, glass panels, pill controls, Geist for reading,
-   Geist Mono for numbers and Departure Mono for labels. Neon yellow with neon pink is this
+   Geist Mono for numbers and Departure Mono for labels. Coral, the colour of its octopus, with teal is this
    app's own pair. */
 
 @font-face { font-family: "Departure Mono"; font-weight: 400; font-display: swap; src: url("./DepartureMono-Regular.woff2") format("woff2"); }
@@ -19,10 +19,10 @@
   --ts: #dadbdf;
   --tt: #8d9196;
   /* Two currents of different colour, for an app where streams flow into one. */
-  --ac: #e4ff3d;
-  --ac2: #ff3fa4;
-  --ac-soft: #f4ffa6;
-  --ac-dim: #e4ff3d1a;
+  --ac: #ff7a45;
+  --ac2: #2dd4bf;
+  --ac-soft: #ffc9b3;
+  --ac-dim: #ff7a451a;
   --ac-text: var(--ac);
   /* The lead button, its ink and its glow follow whichever accent is chosen. */
   --btn: linear-gradient(180deg, color-mix(in srgb, var(--ac) 55%, #fff), var(--ac));
@@ -37,9 +37,9 @@
   --scan: #ffffff0a;
   --sky: 0.2;
   /* One colour per network, the same in the flow drawing, the chart and the legend. */
-  --s1: #e4ff3d;
-  --s2: #ff3fa4;
-  --s3: #5ee7ff;
+  --s1: #ff7a45;
+  --s2: #2dd4bf;
+  --s3: #ffd166;
   --s4: #f472b6;
   --s5: #86efac;
   --s6: #fb923c;
@@ -71,16 +71,16 @@
   --scan: #0000000a;
   --sky: 0.14;
   /* The accents are too light to read as text on paper; marks keep the pure tone. */
-  --ac-text: #c2187a;
-  --s1: #8a9a00;
-  --s2: #c2187a;
-  --s3: #0e7490;
+  --ac-text: #c2410c;
+  --s1: #c2410c;
+  --s2: #0f766e;
+  --s3: #a16207;
   --s4: #be185d;
   --s5: #15803d;
   --s6: #c2410c;
   color-scheme: light;
 }
-[data-theme="light"][data-accent="neon"] { --ac: #c2187a; --ac2: #7a8a00; --ac-soft: #8e0f58; --ac-dim: #c2187a1a; }
+[data-theme="light"][data-accent="coral"] { --ac: #c2410c; --ac2: #0f766e; --ac-soft: #9a3412; --ac-dim: #c2410c1a; }
 [data-theme="light"][data-accent="cyan"] { --ac-text: #0b7285; --s1: #0891b2; --s2: #7c3aed; --s3: #b45309; }
 [data-theme="light"][data-accent="orange"] { --ac-text: #b24a00; }
 [data-theme="light"][data-accent="green"] { --ac-text: #0a7a43; }
@@ -425,7 +425,7 @@ main {
 .swatches button { display: inline-flex; align-items: center; gap: 8px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; }
 .swatches button[aria-checked="true"] { border-color: var(--ac); color: var(--tp); }
 .swatches i { width: 10px; height: 10px; border-radius: 50%; display: block; }
-[data-swatch="neon"] i { background: linear-gradient(135deg, #e4ff3d 50%, #ff3fa4 50%); }
+[data-swatch="coral"] i { background: linear-gradient(135deg, #ff7a45 50%, #2dd4bf 50%); }
 [data-swatch="cyan"] i { background: #22d3ee; }
 [data-swatch="orange"] i { background: #ff7a17; }
 [data-swatch="green"] i { background: #39d98a; }

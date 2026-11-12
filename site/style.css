@@ -17,14 +17,14 @@
   --tp: #fff;
   --ts: #dadbdf;
   --tt: #8d9196;
-  --ac: #e4ff3d;
-  --ac2: #ff3fa4;
-  --ac-soft: #f4ffa6;
-  --ac-dim: #e4ff3d1a;
-  --sel: #c2187a;
-  --btn: linear-gradient(180deg, #f4ff8f, #d6f22a);
-  --btn-ink: #1c2200;
-  --glow: rgba(228, 255, 61, 0.3);
+  --ac: #ff7a45;
+  --ac2: #2dd4bf;
+  --ac-soft: #ffc9b3;
+  --ac-dim: #ff7a451a;
+  --sel: #c2410c;
+  --btn: linear-gradient(180deg, #ffb08f, #ff7a45);
+  --btn-ink: #2a0e02;
+  --glow: rgba(255, 122, 69, 0.3);
   --hover: #ffffff0a;
   --hdr-bg: #0a0a0ceb;
   --glass: linear-gradient(150deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04) 60%);
@@ -34,9 +34,9 @@
   --pill-edge: inset 0 1px 0.5px #ffffff38, inset 0 -2px 5px #00000059, 0 2px 8px #0006;
   --scan: #ffffff0a;
   --sky: 0.3;
-  --s1: #e4ff3d;
-  --s2: #ff3fa4;
-  --s3: #5ee7ff;
+  --s1: #ff7a45;
+  --s2: #2dd4bf;
+  --s3: #ffd166;
   --good: #4ade80;
   --bad: #fb923c;
 
@@ -62,11 +62,11 @@
   --tp: #14130f;
   --ts: #3a382f;
   --tt: #6b675b;
-  --ac: #c2187a;
-  --ac2: #7a8a00;
-  --ac-soft: #8e0f58;
-  --ac-dim: #c2187a1a;
-  --sel: #c2187a;
+  --ac: #c2410c;
+  --ac2: #0f766e;
+  --ac-soft: #9a3412;
+  --ac-dim: #c2410c1a;
+  --sel: #c2410c;
   --hover: #0000000a;
   --hdr-bg: #f4f1eaeb;
   --glass: linear-gradient(150deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.42) 60%);
@@ -76,9 +76,9 @@
   --pill-edge: inset 0 1px 0.5px #fff, 0 2px 8px #4637141f;
   --scan: #0000000a;
   --sky: 0.2;
-  --s1: #8a9a00;
-  --s2: #c2187a;
-  --s3: #0e7490;
+  --s1: #c2410c;
+  --s2: #0f766e;
+  --s3: #a16207;
   --good: #15803d;
   --bad: #c2410c;
   color-scheme: light;
@@ -102,12 +102,12 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .skip-link { z-index: 200; background: var(--tp); color: var(--bg); border-radius: 0 0 8px; padding: 10px 16px; font-size: 14px; text-decoration: none; position: absolute; top: 0; left: -9999px; }
 .skip-link:focus-visible { left: 0; }
 
-/* colour far behind everything: neon yellow, neon pink, ember */
+/* colour far behind everything: coral, teal, deep teal */
 .g-sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .g-sky i { position: absolute; width: 46vmax; height: 46vmax; border-radius: 50%; filter: blur(100px); opacity: var(--sky); animation: g-drift 28s ease-in-out infinite alternate; }
-.g-sky i:nth-child(1) { background: #d9f22e; top: -22vmax; left: -14vmax; }
-.g-sky i:nth-child(2) { background: #ff3fa4; top: 30vh; right: -20vmax; animation-delay: -9s; }
-.g-sky i:nth-child(3) { background: #ff7a3d; top: 120vh; left: 4vw; animation-delay: -16s; }
+.g-sky i:nth-child(1) { background: #ff7a45; top: -22vmax; left: -14vmax; }
+.g-sky i:nth-child(2) { background: #2dd4bf; top: 30vh; right: -20vmax; animation-delay: -9s; }
+.g-sky i:nth-child(3) { background: #0ea5a0; top: 120vh; left: 4vw; animation-delay: -16s; }
 @keyframes g-drift { to { transform: translate3d(6vmax, 5vmax, 0) scale(1.12); } }
 
 /* header */
@@ -165,7 +165,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 @keyframes sig-draw { to { stroke-dashoffset: 0; } }
 
 /* glass command bar and the lead button */
-.g-cmd { display: flex; align-items: center; gap: 12px; width: min(640px, 100%); padding: 9px 9px 9px 16px; border-radius: 14px; background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); box-shadow: var(--glass-edge); }
+.g-cmd { display: flex; align-items: center; gap: 12px; width: min(720px, 100%); padding: 9px 9px 9px 16px; border-radius: 14px; background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); box-shadow: var(--glass-edge); }
 .g-cmd > span { font: 12px "Departure Mono", var(--mono); color: var(--ac); }
 .g-cmd code { flex: 1; font: 13.5px var(--mono); color: var(--tp); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .g-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 600 13px var(--sans); border: 0; border-radius: 9px; padding: 8px 16px; cursor: pointer; color: var(--btn-ink); text-decoration: none; white-space: nowrap; background: var(--btn); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 16px var(--glow); transition: transform 0.2s var(--ease-out), filter 0.2s; }
@@ -189,7 +189,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 /* the screen on the stage */
 .lab-stage { position: relative; overflow: hidden; height: clamp(300px, 62vw, 680px); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: linear-gradient(var(--border) 1px, #0000 1px) 0 0 / 100% 56px, linear-gradient(90deg, var(--border) 1px, #0000 1px) 0 0 / 56px 100%; }
 .lab-stage:before { content: ""; position: absolute; inset: 0; background: radial-gradient(70% 70% at 50% 50%, #0000 0%, var(--bg) 100%); }
-.g-device { position: absolute; left: 50%; top: 50%; translate: -50% -50%; margin: 0; width: min(900px, calc(100% - 28px)); max-height: calc(100% - 28px); padding: 0 7px 7px; border-radius: 18px; background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); box-shadow: var(--glass-edge), 0 30px 80px rgba(0, 0, 0, 0.4), 0 0 60px rgba(228, 255, 61, 0.16); }
+.g-device { position: absolute; left: 50%; top: 50%; translate: -50% -50%; margin: 0; width: min(900px, calc(100% - 28px)); max-height: calc(100% - 28px); padding: 0 7px 7px; border-radius: 18px; background: var(--glass); -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); box-shadow: var(--glass-edge), 0 30px 80px rgba(0, 0, 0, 0.4), 0 0 60px rgba(255, 122, 69, 0.16); }
 .g-device figcaption { display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px; font: 10px var(--font-pixel); text-transform: uppercase; letter-spacing: 0.1em; color: var(--tt); white-space: nowrap; overflow: hidden; }
 .g-device figcaption i { width: 8px; height: 8px; border-radius: 50%; background: var(--border-h); flex: none; }
 .g-device figcaption span { margin-left: 8px; overflow: hidden; text-overflow: ellipsis; }

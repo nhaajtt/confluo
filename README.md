@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/app-icon.png" width="112" alt="Confluo: a dumbo octopus on neon yellow and pink">
+  <img src="app/app-icon.png" width="112" alt="Confluo: a small orange octopus on teal">
 </p>
 
 <h1 align="center">Confluo</h1>
@@ -22,7 +22,7 @@
   <a href="https://github.com/nhaajtt/confluo/actions/workflows/ci.yml"><img src="https://github.com/nhaajtt/confluo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/nhaajtt/confluo/releases/latest"><img src="https://img.shields.io/github/v/release/nhaajtt/confluo" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0a0a0c" alt="Windows 10 and 11">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-e4ff3d" alt="MIT licence"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-ff7a45" alt="MIT licence"></a>
 </p>
 
 ![The Confluo window during a download: the list on the left, file map and live flow on the right](docs/app-dark.png)
