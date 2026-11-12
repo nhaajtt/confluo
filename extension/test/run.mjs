@@ -110,7 +110,7 @@ try {
     const uuid = "6f1c2f0e-8f2b-4d55-9a3e-2b7c1d9e4a10";
     const o = new firefox.Options();
     o.setBinary("C:\\Program Files\\Mozilla Firefox\\firefox.exe");
-    o.setPreference("extensions.webextensions.uuids", JSON.stringify({ "confluo@confluo.dev": uuid }));
+    o.setPreference("extensions.webextensions.uuids", JSON.stringify({ "confluo@nhaajt.com": uuid }));
     o.setPreference("browser.download.folderList", 2);
     o.setPreference("browser.download.dir", browserDir);
     o.setPreference("browser.download.useDownloadDir", true);
@@ -126,7 +126,7 @@ try {
     const caps = await driver.getCapabilities();
     browserName = `Firefox ${caps.get("browserVersion")}`;
     const addon = await driver.installAddon(ext, true);
-    check("extension loaded (temporary add-on installed)", addon === "confluo@confluo.dev", `${browserName}, id ${addon}`);
+    check("extension loaded (temporary add-on installed)", addon === "confluo@nhaajt.com", `${browserName}, id ${addon}`);
     // WebDriver may not navigate to an extension page; the browser itself may open one.
     openOptions = async () => {
       await driver.setContext("chrome");
@@ -159,12 +159,12 @@ try {
     const t = await stateText();
     return t && !/^\s*$/.test(t) ? t : null;
   });
-  check("options page finds the running app, unpaired", /pairing code does not match/i.test(first ?? ""), first ?? "");
+  check("options page finds the running app, unpaired", /paste the pairing code/i.test(first ?? ""), first ?? "");
 
   // 1. Wrong code: the browser must keep its download, Confluo must get nothing.
   await fill("00".repeat(24));
-  await sleep(600);
-  check("wrong pairing code is reported", /does not match/i.test(await stateText()), await stateText());
+  await until(async () => /is not its code/i.test(await stateText()), 8000);
+  check("wrong pairing code is reported", /is not its code/i.test(await stateText()), await stateText());
   await clickLink("unpaired");
   const kept = await until(() => browserFiles().length > 0, 20000);
   check("unpaired: the browser downloads the file itself", !!kept, browserFiles().join(","));

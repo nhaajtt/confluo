@@ -20,7 +20,7 @@ if (!setup) throw new Error(`no installer in ${nsis}; run "pnpm tauri build" in 
 const dist = path.join(here, "dist");
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(path.join(dist, "download"), { recursive: true });
-for (const f of ["index.html", "style.css", "main.js", "theme.js", "backdrop.js", "icon.png", "og.png", "_headers", "fonts", "media"]) {
+for (const f of ["index.html", "privacy.html", "style.css", "main.js", "theme.js", "backdrop.js", "icon.png", "og.png", "_headers", "fonts", "media"]) {
   cpSync(path.join(here, f), path.join(dist, f), { recursive: true });
 }
 const bytes = readFileSync(path.join(nsis, setup));

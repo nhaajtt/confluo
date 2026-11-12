@@ -10,8 +10,10 @@ function show(text, kind) {
 
 async function check() {
   const reply = await api.runtime.sendMessage({ type: "ping" });
-  if (!reply?.found) show("Confluo is not running on this computer.", "bad");
-  else if (!reply.paired) show("Confluo is running. The pairing code does not match.", "bad");
+  const { token } = await api.storage.local.get({ token: "" });
+  if (!reply?.found) show("Confluo is not running on this computer. Open it, then come back here.", "bad");
+  else if (!token) show("Confluo is running. Paste the pairing code from Confluo: Setup, then Browser.", "bad");
+  else if (!reply.paired) show("Confluo is running, but this pairing code is not its code. Copy it again from Confluo: Setup, then Browser.", "bad");
   else show(`Connected to Confluo ${reply.version}.`, "ok");
 }
 

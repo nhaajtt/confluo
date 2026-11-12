@@ -96,27 +96,74 @@ api.contextMenus.onClicked.addListener(async (info) => {
   }
 });
 
-api.downloads.onCreated.addListener(async (item) => {
-  const { capture } = await settings();
-  const url = item.finalUrl || item.url;
-  if (!capture || !/^https?:\/\//i.test(url) || item.state !== "in_progress") return;
-  // Hold the download in the browser while asking, so nothing is fetched twice.
+const IS_FIREFOX = typeof browser !== "undefined" && typeof browser.runtime?.getBrowserInfo === "function";
+
+// Downloads this extension started itself, which it must not take over again.
+const own = new Set();
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Gives a held download back to the browser. If it will not resume, this asks again for
+// a few seconds and then starts it afresh rather than leaving it stuck.
+async function giveBack(id, url) {
+  for (let i = 0; i < 12; i++) {
+    try {
+      await api.downloads.resume(id);
+    } catch {
+      // asked again below
+    }
+    await pause(250);
+    const [now] = await api.downloads.search({ id });
+    if (!now || now.state !== "in_progress" || !now.paused) return;
+  }
+  own.add(url);
   try {
-    await api.downloads.pause(item.id);
+    await api.downloads.cancel(id);
+    await api.downloads.erase({ id });
   } catch {
-    return;
+    // already gone
+  }
+  await api.downloads.download({ url });
+}
+
+api.downloads.onCreated.addListener(async (item) => {
+  const { capture, token } = await settings();
+  const url = item.finalUrl || item.url;
+  if (own.delete(url)) return;
+  // Without a pairing code nothing can be handed over, so the download is left alone.
+  if (!capture || !token || !/^https?:\/\//i.test(url) || item.state !== "in_progress") return;
+  // Chromium can hold a download while the app is asked, so nothing is fetched twice.
+  // Firefox cannot resume a download that was paused before its first bytes arrived, so
+  // there the download keeps running for the few milliseconds the question takes.
+  let held = false;
+  if (!IS_FIREFOX) {
+    try {
+      await api.downloads.pause(item.id);
+      held = true;
+    } catch {
+      return;
+    }
   }
   const name = item.filename ? item.filename.split(/[\\/]/).pop() : undefined;
   const taken = await offer(url, { file_name: name || undefined, referrer: item.referrer || undefined });
+  if (!taken) {
+    if (held) await giveBack(item.id, url);
+    return;
+  }
   try {
-    if (taken) {
-      await api.downloads.cancel(item.id);
-      await api.downloads.erase({ id: item.id });
-    } else {
-      await api.downloads.resume(item.id);
-    }
+    await api.downloads.cancel(item.id);
   } catch {
-    // The download finished or was removed in the meantime.
+    // It finished before it could be cancelled; the browser's copy is removed below.
+  }
+  try {
+    const [now] = await api.downloads.search({ id: item.id });
+    if (now?.state === "complete") await api.downloads.removeFile(item.id);
+  } catch {
+    // nothing on disk to remove
+  }
+  try {
+    await api.downloads.erase({ id: item.id });
+  } catch {
+    // already gone from the list
   }
 });
 
