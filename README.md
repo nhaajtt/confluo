@@ -7,9 +7,8 @@ the speed. Windows first; the engine also builds on Linux and macOS.
 Download and install command: **https://confluo.nhaajt.com** · installers are also attached to the
 [releases](https://github.com/nhaajtt/confluo/releases).
 
-Confluo was built after studying [Baseline](https://github.com/example/baseline) (MIT). It is an
-independent implementation in Rust with a Tauri shell, not a fork. Baseline is used, unmodified,
-as the baseline in the benchmarks below.
+Confluo is an independent implementation in Rust with a Tauri shell. The benchmarks below use
+another open-source multi-network downloader, unmodified, as the baseline.
 
 ## Build and run
 
@@ -61,8 +60,7 @@ installer, its SHA-256 and `install.ps1` with both filled in), ready to upload t
 ## How it works, and why
 
 **Sockets are pinned to the interface, not to an address.** Windows uses `IP_UNICAST_IF`, Linux
-`SO_BINDTODEVICE`, macOS `IP_BOUND_IF`. Binding only the source address (what Baseline does on
-Windows and macOS, see its issue #65) leaves the routing table in charge, so with two default
+`SO_BINDTODEVICE`, macOS `IP_BOUND_IF`. Binding only the source address leaves the routing table in charge, so with two default
 routes everything can leave through one adapter. Evidence here: a Confluo connection pinned to an
 adapter with no route to the server fails with "network unreachable" instead of quietly going out
 through another adapter.
@@ -119,7 +117,7 @@ routing and parallel flows.
 - The browser bridge listens on `127.0.0.1` only and refuses requests with a web `Origin` or a wrong
   `Host` (DNS rebinding). The extension never sends the pairing code: it checks that the listener
   can sign a random number with the code (so another program on that port gets nothing), and signs
-  each offer, with a timestamp, using HMAC-SHA256. Baseline's equivalent has no secret.
+  each offer, with a timestamp, using HMAC-SHA256. Without a secret, any local program could do the same.
 - File names from servers lose path separators, reserved Windows names and invisible characters
   that reorder text (so `exe.pdf` tricks do not survive).
 - The saved list is written whole and flushed before it replaces the old one. On load, limits in it
@@ -131,8 +129,8 @@ routing and parallel flows.
 ## Benchmarks
 
 Machine: Windows 11, i9-14900KS, 32 GB. Both apps download from `confluo-testsrv` on this machine's
-LAN address, 7 runs each. Baseline is commit `2e44a2f`, built with its own `npm run build:unpack` and
-driven through its real window with Playwright. Reproduce with:
+LAN address, 7 runs each. The other downloader is an open-source Electron app, built from source with its own
+build script and driven through its real window with Playwright. Reproduce with:
 
 ```sh
 bench/.venv/Scripts/python bench/bench.py --ip <a LAN address of this machine> --runs 7
@@ -143,14 +141,14 @@ bench/.venv/Scripts/python bench/soak.py  --ip <same> --events 12
 Raw output is in `bench/results/` (`20261111-043403` is the run quoted here). Times are seconds,
 median with mean ± 95% confidence interval of the mean in brackets.
 
-| Scenario | Confluo app | Baseline | Result |
+| Scenario | Confluo app | Other downloader | Result |
 |---|---|---|---|
 | No limit, 1 GiB | 1.70 (1.67 ± 0.07) | 6.36 (6.31 ± 0.26) | Confluo 3.7x faster |
 | Server caps each connection at 1 MiB/s, 200 MiB | 7.32 (7.32 ± 0.02) | 7.48 (7.50 ± 0.04) | Confluo 2% faster |
 | Server allows 4 connections, 200 MiB | 25.54 (25.50 ± 0.21) | 26.11 (26.10 ± 0.03) | Confluo 2% faster |
 | Server without Range support, 200 MiB | 5.18 (5.19 ± 0.02) | 5.29 (5.30 ± 0.03) | Confluo 2% faster |
 | 150 ms before each response, 4 MiB/s per connection, 200 MiB | 3.72 (3.63 ± 0.13) | 3.62 (3.63 ± 0.03) | no difference shown |
-| One 20 MiB/s bottleneck, 200 MiB | 10.30 (10.30 ± 0.01) | 10.16 (10.14 ± 0.03) | **Baseline 1.4% faster** |
+| One 20 MiB/s bottleneck, 200 MiB | 10.30 (10.30 ± 0.01) | 10.16 (10.14 ± 0.03) | **other 1.4% faster** |
 
 The three server-limited rows were losses of 11%, 11% and 21% in the previous round (8.32, 29.3
 and 4.48 s). What changed: the per-network speed meter no longer lags a tick behind, a clear gain
@@ -159,7 +157,7 @@ connection ceiling is tested again after one second instead of fifteen.
 
 What is still not a win:
 
-- **One shared bottleneck: Baseline is 1.4% (0.14 s) faster**, consistently. Confluo spends about that
+- **One shared bottleneck: the other downloader is 1.4% (0.14 s) faster**, consistently. Confluo spends about that
   long at the start finding out that 16 connections do no more than 8.
 - **Slow first byte: no difference can be claimed.** The means are equal; Confluo's runs fall into two
   groups a quarter of a second apart (3.47 and 3.72 s) depending on which tick the tuner decides
@@ -176,7 +174,7 @@ What is still not a win:
   runs more than 32: a connection whose tail was handed to another one is closed mid-response and
   the server notices a little later.
 
-| Cost | Confluo engine (CLI) | Confluo app | Baseline |
+| Cost | Confluo engine (CLI) | Confluo app | Other downloader |
 |---|---|---|---|
 | CPU time per download (range over scenarios) | 0.1 - 1.7 s | 2.0 - 3.5 s | 12.8 - 60.1 s |
 | Peak memory, whole process tree | 11 - 48 MiB | 358 - 395 MiB | 596 - 700 MiB |
@@ -184,7 +182,7 @@ What is still not a win:
 | Installer | | 2.3 MiB | 258 MiB |
 | Launch to ready (installed copy, 3 starts) | | 0.5 - 0.8 s | not measured the same way |
 
-| Hard kill at 50% of a 200 MiB download, then relaunch | Confluo | Baseline |
+| Hard kill at 50% of a 200 MiB download, then relaunch | Confluo | Other downloader |
 |---|---|---|
 | File intact afterwards (3 of 3 runs) | yes | yes |
 | Bytes fetched again | 6 - 16 MiB | 112 - 113 MiB |
@@ -247,7 +245,7 @@ Checked outside `cargo test`, by hand-run scripts in this round:
 
 ## Known gaps
 
-- No torrents, Usenet, Telegram or FTP (Baseline has the first three).
+- No torrents, Usenet, Telegram or FTP.
 - No proxy support. DNS uses the system resolver, not the DNS servers of each interface.
 - **macOS has never been built or run.** No toolchain was available; it is in the CI matrix, which
   has not run yet either. The Linux check was under WSL2, not on a machine with several real
