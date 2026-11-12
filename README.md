@@ -1,14 +1,81 @@
-# Confluo
+<p align="center">
+  <img src="app/app-icon.png" width="112" alt="Confluo: an octopus in neon yellow and pink">
+</p>
 
-A download manager that spreads one download over several connections and several
-network interfaces, survives crashes and bad servers, and tells you what is limiting
-the speed. Windows first; the engine also builds on Linux and macOS.
+<h1 align="center">Confluo</h1>
 
-Download and install command: **https://confluo.nhaajt.com** · installers are also attached to the
-[releases](https://github.com/nhaajtt/confluo/releases).
+<p align="center">
+  <b>Every network you have, flowing into one download.</b><br>
+  A download manager for Windows that splits one file over several connections and several
+  networks at once, carries on after a crash, and tells you what is holding the speed back.
+</p>
 
-Confluo is an independent implementation in Rust with a Tauri shell. The benchmarks below use
-another open-source multi-network downloader, unmodified, as the baseline.
+<p align="center">
+  <a href="https://confluo.nhaajt.com"><b>Website</b></a> ·
+  <a href="https://github.com/nhaajtt/confluo/releases/latest"><b>Download</b></a> ·
+  <a href="#install">Install</a> ·
+  <a href="#benchmarks">Benchmarks</a> ·
+  <a href="#how-it-works-and-why">How it works</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/nhaajtt/confluo/actions/workflows/ci.yml"><img src="https://github.com/nhaajtt/confluo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/nhaajtt/confluo/releases/latest"><img src="https://img.shields.io/github/v/release/nhaajtt/confluo" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0a0a0c" alt="Windows 10 and 11">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-e4ff3d" alt="MIT licence"></a>
+</p>
+
+![The Confluo window during a download: the list on the left, file map and live flow on the right](docs/app-dark.png)
+
+## Demo
+
+![A link is pasted, the download starts, and the live flow panel fills in](docs/demo.gif)
+
+The same recording as a video: [`docs/demo.mp4`](docs/demo.mp4). It was captured from the real app
+downloading an 8 GiB file from the test server in this repository, which was set to serve
+38 MiB/s. The machine has one internet line, so one network is shown.
+
+## What it does
+
+- **Uses every network at once.** Each connection is pinned to its own adapter, so Ethernet,
+  Wi-Fi and a phone hotspot carry the same file together. The faster one takes the larger share,
+  and if one drops the others take over its part.
+- **Adds connections only when they help.** It starts with 8, measures, and goes to 16 or 32 only
+  if the speed follows. A server that refuses is asked again a second later, not hammered.
+- **Carries on after a crash.** Twice a second it records which bytes are safely on disk. Killed
+  11 times during a 1 GiB download in testing, the file still came out byte-exact.
+- **Says what is slow.** The network path, a server capping each connection, a server refusing
+  connections, the disk, or your own limit: the app names the one cause.
+- **Takes downloads from the browser.** The companion extension hands downloads from Chrome, Edge
+  or Firefox to the app over `127.0.0.1` only, with a pairing code that never leaves the PC.
+- **Small.** A 2.4 MB installer, ready about half a second after launch, no account, no ads,
+  no telemetry.
+
+## Screenshots
+
+| Live flow | Light theme |
+|---|---|
+| ![Live flow: each network is a thread running into one stream, with total, average and peak speed and a 60-second chart](docs/live-flow.png) | ![The same window in the light theme](docs/app-light.png) |
+
+The download page, [confluo.nhaajt.com](https://confluo.nhaajt.com):
+
+![The download page: install command, download button and a live flow illustration](docs/site.png)
+
+## Install
+
+One line in PowerShell or Windows Terminal, no admin rights needed:
+
+```powershell
+powershell -c "irm https://confluo.nhaajt.com/install.ps1 | iex"
+```
+
+It downloads the installer, checks its SHA-256 and installs for your user only. Run it again to
+update. Or download `Confluo_0.1.0_x64-setup.exe` from the
+[latest release](https://github.com/nhaajtt/confluo/releases/latest); it is not code-signed yet,
+so Windows SmartScreen asks before running it (More info, then Run anyway).
+
+Confluo is written in Rust with a Tauri shell. Windows is the tested platform; the engine also
+builds and passes its tests on Linux and macOS.
 
 ## Build and run
 
@@ -247,9 +314,9 @@ Checked outside `cargo test`, by hand-run scripts in this round:
 
 - No torrents, Usenet, Telegram or FTP.
 - No proxy support. DNS uses the system resolver, not the DNS servers of each interface.
-- **macOS has never been built or run.** No toolchain was available; it is in the CI matrix, which
-  has not run yet either. The Linux check was under WSL2, not on a machine with several real
-  network interfaces, and the desktop app has only ever been built for Windows.
+- **macOS and Linux have only been checked by automated tests.** The engine builds and passes its
+  tests on both in CI, and Linux was also run by hand under WSL2. Neither was tried on a machine
+  with several real network interfaces, and the desktop app has only been built for Windows.
 - The installer is not code-signed, so Windows SmartScreen will warn. It installs the app only;
   the `confluo` command-line program is not in it.
 - The browser extension is not in any store; it is loaded unpacked.
