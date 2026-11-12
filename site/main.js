@@ -148,11 +148,13 @@ fetch("download/SHA256SUMS", { cache: "no-cache" })
   })
   .catch(() => {});
 
-// --- the film pauses when it leaves the screen
+// --- the film starts by itself once half of it is on screen, and pauses when it leaves
 for (const v of document.querySelectorAll("video")) {
+  const auto = "auto" in v.dataset && !reduced;
   new IntersectionObserver(([e]) => {
     if (!e.isIntersecting) v.pause();
-  }).observe(v);
+    else if (auto && e.intersectionRatio >= 0.5) v.play().catch(() => {});
+  }, { threshold: [0, 0.5] }).observe(v);
 }
 
 // --- timeline: years across, one bar per thing, a line at today
