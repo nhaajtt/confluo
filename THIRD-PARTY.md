@@ -1,8 +1,8 @@
 # Third-party software
 
 Confluo is MIT licensed (see `LICENSE`). It is an independent implementation: no source
-code was copied from Baseline (MIT, Copyright (c) 2026 its author), which was studied
-as a reference and is used unmodified, from its own repository, as the benchmark baseline.
+code was copied from any other download manager. The benchmark baseline is a separate
+open-source app, used unmodified from its own repository.
 
 Confluo links the following components. Each keeps its own licence; the exact
 versions are pinned in `Cargo.lock` and `app/pnpm-lock.yaml`.

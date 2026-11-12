@@ -1,9 +1,9 @@
-"""Runs the same downloads through Confluo and Baseline and records time, CPU, memory and server-side counters.
+"""Runs the same downloads through Confluo and a baseline app and records time, CPU, memory and server-side counters.
 
     bench/.venv/Scripts/python bench/bench.py --ip <LAN address> --runs 3
 
 Everything is local: the file server is `confluo-testsrv`, bound to one of this
-machine's own LAN addresses (Baseline binds its sockets to real adapters and cannot
+machine's own LAN addresses (the baseline app binds its sockets to real adapters and cannot
 reach 127.0.0.1). Results go to bench/results/.
 """
 
