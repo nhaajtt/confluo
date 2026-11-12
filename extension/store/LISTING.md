@@ -14,7 +14,7 @@ GitHub release as `confluo-extension-0.1.0.zip`.
 | Language | English |
 | Homepage | https://confluo.nhaajt.com |
 | Support | https://github.com/nhaajtt/confluo/issues |
-| Privacy policy | https://confluo.nhaajt.com/privacy.html |
+| Privacy policy | https://confluo.nhaajt.com/privacy |
 | Licence | MIT |
 | Icon | `extension/icon128.png` |
 | Screenshot (1280x800) | `extension/store/screenshot-1280x800.png` |
