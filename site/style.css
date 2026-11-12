@@ -205,6 +205,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .lab-stage.is-plain { padding-block: clamp(48px, 9vw, 110px); }
 .lab-stage .flow-cap { color: #8d9196; }
 
+.g-device video { display: block; width: 100%; height: auto; aspect-ratio: 31 / 20; object-fit: cover; border-radius: 12px; background: #0a0a0c; }
+.lab-stage.is-film { padding-block: clamp(28px, 5vw, 56px); border: 1px solid var(--border); border-radius: 18px; }
+
 /* figures */
 .g-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-inline: var(--pad-x); border-inline: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .g-stats > div { padding: 28px var(--pad-x); display: flex; flex-direction: column; gap: 6px; }

@@ -148,6 +148,13 @@ fetch("download/SHA256SUMS", { cache: "no-cache" })
   })
   .catch(() => {});
 
+// --- the film pauses when it leaves the screen
+for (const v of document.querySelectorAll("video")) {
+  new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) v.pause();
+  }).observe(v);
+}
+
 // --- timeline: years across, one bar per thing, a line at today
 const T0 = 2024;
 const YEARS = 6;
@@ -223,6 +230,7 @@ const JUMPS = [
   ["#timeline", "Timeline", "Dòng thời gian"],
   ["#features", "What it does", "Làm được gì"],
   ["#how", "Three steps", "Ba bước"],
+  ["#film", "The 30-second film", "Phim 30 giây"],
   ["#numbers", "Measured numbers", "Số đo"],
   ["#private", "Privacy", "Riêng tư"],
   ["#faq", "FAQ", "FAQ"],
