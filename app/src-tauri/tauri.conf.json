@@ -30,6 +30,6 @@
     "targets": ["nsis"],
     "icon": ["icons/icon.ico", "icons/icon.png"],
     "licenseFile": "../../LICENSE",
-    "windows": { "nsis": { "installMode": "currentUser" } }
+    "windows": { "nsis": { "installMode": "currentUser", "installerIcon": "icons/icon.ico" } }
   }
 }

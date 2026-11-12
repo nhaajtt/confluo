@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/app-icon.png" width="112" alt="Confluo: a small orange octopus on teal">
+  <img src="app/app-icon.png" width="112" alt="Confluo: a small orange octopus on orange">
 </p>
 
 <h1 align="center">Confluo</h1>
@@ -48,7 +48,7 @@ downloading an 8 GiB file from the test server in this repository, which was set
   connections, the disk, or your own limit: the app names the one cause.
 - **Takes downloads from the browser.** The companion extension hands downloads from Chrome, Edge
   or Firefox to the app over `127.0.0.1` only, with a pairing code that never leaves the PC.
-- **Small.** A 2.4 MB installer, ready about half a second after launch, no account, no ads,
+- **Small.** A 2.7 MB installer, ready about half a second after launch, no account, no ads,
   no telemetry.
 
 ## Screenshots
@@ -165,7 +165,7 @@ interfaces share one router the app says that adding them up cannot help.
 
 **Decisions on technology.** Rust for the engine because interface pinning needs raw socket options
 and because the measured CPU and memory cost of an Electron main-process engine is high (see below).
-Tauri for the shell because the system WebView makes the installer 2.3 MiB. HTTP/2 is not used on
+Tauri for the shell because the system WebView makes the installer 2.6 MiB. HTTP/2 is not used on
 purpose: it multiplexes everything over one TCP connection, which defeats both per-interface
 routing and parallel flows.
 
@@ -246,7 +246,7 @@ What is still not a win:
 | CPU time per download (range over scenarios) | 0.1 - 1.7 s | 2.0 - 3.5 s | 12.8 - 60.1 s |
 | Peak memory, whole process tree | 11 - 48 MiB | 358 - 395 MiB | 596 - 700 MiB |
 | Requests for a 200 MiB file | 1 - 83 | same | about 200 |
-| Installer | | 2.3 MiB | 258 MiB |
+| Installer | | 2.6 MiB | 258 MiB |
 | Launch to ready (installed copy, 3 starts) | | 0.5 - 0.8 s | not measured the same way |
 
 | Hard kill at 50% of a 200 MiB download, then relaunch | Confluo | Other downloader |
