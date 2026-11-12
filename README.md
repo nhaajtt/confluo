@@ -63,10 +63,10 @@ The download page, [confluo.nhaajt.com](https://confluo.nhaajt.com):
 
 ## Install
 
-One line in PowerShell or Windows Terminal, no admin rights needed:
+One line, pasted into PowerShell (5.1 or 7), no admin rights needed:
 
 ```powershell
-powershell -c "irm https://confluo.nhaajt.com/install.ps1 | iex"
+irm https://confluo.nhaajt.com/install.ps1 | iex
 ```
 
 It downloads the installer, checks its SHA-256 and installs for your user only. Run it again to

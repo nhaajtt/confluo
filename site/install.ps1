@@ -1,6 +1,8 @@
 # Installs Confluo for the current user. No administrator rights needed.
 #
-#   powershell -c "irm https://confluo.nhaajt.com/install.ps1 | iex"
+#   irm https://confluo.nhaajt.com/install.ps1 | iex
+#
+# Paste that line into PowerShell (Windows PowerShell 5.1 or PowerShell 7).
 #
 # What it does: downloads the installer over HTTPS into your temp folder, checks
 # its SHA-256 against the value below, runs it silently, deletes it, starts Confluo.
