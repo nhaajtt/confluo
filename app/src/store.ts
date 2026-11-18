@@ -61,7 +61,8 @@ function upsert(item: Item) {
 }
 
 async function loadList() {
-  const list = await api.list();
+  // A list read before a removal may arrive after it.
+  const list = (await api.list()).filter((i) => !gone.has(i.id));
   setItems(reconcile(list));
   const first = list[0];
   if (selected() == null && first) setSelected(first.id);

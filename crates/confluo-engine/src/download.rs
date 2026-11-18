@@ -928,8 +928,8 @@ pub async fn download(
         && !still_the_same(first_bind.as_ref(), &primary, &opts, &paths.part, &j.done).await
     {
         notes.push("the file changed on the server since the download stopped; starting over".into());
-        journal::remove(&paths.journal);
         std::fs::remove_file(&paths.part).map_err(Error::Disk)?;
+        journal::remove(&paths.journal);
         resumed = None;
     }
 
