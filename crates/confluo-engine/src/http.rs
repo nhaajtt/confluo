@@ -106,12 +106,17 @@ impl Origin {
 /// True for this computer and private or link-local addresses written as such.
 /// (A public name that resolves to a private address is not caught here.)
 pub fn is_local(url: &Url) -> bool {
+    // Shared address space (100.64.0.0/10, carrier NAT and VPN overlays such as
+    // Tailscale) and "this network" (0.0.0.0/8) reach machines nearby too.
+    let local_v4 = |ip: std::net::Ipv4Addr| {
+        let [a, b, ..] = ip.octets();
+        ip.is_loopback() || ip.is_private() || ip.is_link_local() || a == 0 || (a == 100 && b & 0xc0 == 64)
+    };
     match url.host() {
-        Some(url::Host::Ipv4(ip)) => {
-            ip.is_loopback() || ip.is_private() || ip.is_link_local() || ip.is_unspecified()
-        }
+        Some(url::Host::Ipv4(ip)) => local_v4(ip),
         Some(url::Host::Ipv6(ip)) => {
-            ip.is_loopback()
+            ip.to_ipv4_mapped().is_some_and(local_v4)
+                || ip.is_loopback()
                 || ip.is_unspecified()
                 || (ip.segments()[0] & 0xfe00) == 0xfc00
                 || (ip.segments()[0] & 0xffc0) == 0xfe80
@@ -406,6 +411,11 @@ mod secret_tests {
             "http://[::1]/x",
             "http://[fd00::1]/x",
             "http://[fe80::1]/x",
+            "http://[::ffff:127.0.0.1]/x",
+            "http://[::ffff:192.168.0.1]/x",
+            "http://100.64.0.1/x",
+            "http://100.127.255.254/x",
+            "http://0.1.2.3/x",
         ] {
             assert!(is_local(&Url::parse(u).unwrap()), "{u}");
         }
