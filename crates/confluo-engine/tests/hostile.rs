@@ -98,7 +98,12 @@ where
 fn cfg() -> Config {
     Config {
         stall_timeout: Duration::from_secs(1),
-        sched: SchedConfig { min_piece: 64 * 1024, first_piece: 128 * 1024, equal_split: false, ..Default::default() },
+        sched: SchedConfig {
+            min_piece: 64 * 1024,
+            first_piece: 128 * 1024,
+            equal_split: false,
+            ..Default::default()
+        },
         write_chunk: 64 * 1024,
         journal_interval: Duration::from_millis(100),
         tick: Duration::from_millis(50),
@@ -216,7 +221,8 @@ async fn endless_mirror_sample_is_not_read_into_memory() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn same_link_twice_at_once_gives_two_exact_files() {
     let size = 6 * MIB;
-    let srv = Server::local(Behavior { size, seed: 33, rate_total: Some(8 * MIB), ..Default::default() }).await;
+    let srv =
+        Server::local(Behavior { size, seed: 33, rate_total: Some(8 * MIB), ..Default::default() }).await;
     let dir = tempfile::tempdir().unwrap();
     let (a, b) = tokio::join!(run(spec(dir.path(), &[srv.url()])), run(spec(dir.path(), &[srv.url()])));
     let want = content(33, size);

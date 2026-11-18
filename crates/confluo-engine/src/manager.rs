@@ -463,8 +463,10 @@ impl Manager {
                 // found by name, so it is only deleted when it is this download's: its journal
                 // names this link, and no other row of the list could resume from it.
                 let part_of = |i: &Item| {
-                    let name = i.snapshot.as_ref().map_or(i.rec.shown_name.as_str(), |s| s.file_name.as_str());
-                    (!name.is_empty()).then(|| crate::name::part_path(&i.rec.dir, &crate::name::sanitize(name)))
+                    let name =
+                        i.snapshot.as_ref().map_or(i.rec.shown_name.as_str(), |s| s.file_name.as_str());
+                    (!name.is_empty())
+                        .then(|| crate::name::part_path(&i.rec.dir, &crate::name::sanitize(name)))
                 };
                 if item.rec.status != Status::Completed
                     && let Some(part) = part_of(&item)
