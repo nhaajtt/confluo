@@ -1,4 +1,4 @@
-import { createMemo, For, onMount, Show } from "solid-js";
+import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { api, type Networks } from "./api";
 import { saveSettings, say, setSetupOpen } from "./command";
@@ -17,6 +17,21 @@ import {
   setTheme,
   theme,
 } from "./store";
+
+const FOCUSABLE = "button:not([disabled]), input:not([disabled]), select, a[href], [tabindex]:not([tabindex='-1'])";
+
+// Arrow keys move between the options of a radio group, as screen reader users expect.
+function radioKeys(e: KeyboardEvent) {
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (!step) return;
+  const radios = [...(e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role="radio"]')];
+  const at = radios.indexOf(document.activeElement as HTMLElement);
+  if (at < 0) return;
+  e.preventDefault();
+  const next = radios[(at + step + radios.length) % radios.length];
+  next?.focus();
+  next?.click();
+}
 
 function Switch(props: { on: boolean; label: string; onChange: (on: boolean) => void }) {
   return (
@@ -40,6 +55,23 @@ export function Setup() {
     setNetworks({ mode: "only", names: [...set] });
   };
   const close = () => setSetupOpen(false);
+  // Focus goes back where it was (the Setup button, usually) when the drawer closes.
+  const opener = document.activeElement as HTMLElement | null;
+  onCleanup(() => opener?.focus());
+  // A modal dialog keeps Tab inside itself.
+  const keys = (e: KeyboardEvent) => {
+    if (e.key === "Escape") return close();
+    if (e.key !== "Tab" || !panel) return;
+    const all = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)];
+    const [first, last] = [all[0], all[all.length - 1]];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last?.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first?.focus();
+    }
+  };
   onMount(() => {
     panel?.querySelector<HTMLElement>("button, input, select")?.focus();
     void refreshNetwork();
@@ -53,7 +85,7 @@ export function Setup() {
         role="dialog"
         aria-modal="true"
         aria-label="Setup"
-        onKeyDown={(e) => e.key === "Escape" && close()}
+        onKeyDown={keys}
       >
         <header>
           <h2>Setup</h2>
@@ -117,7 +149,7 @@ export function Setup() {
 
         <section>
           <h3 class="lbl">Networks</h3>
-          <div class="seg" role="radiogroup" aria-label="Which networks to use">
+          <div class="seg" role="radiogroup" aria-label="Which networks to use" onKeyDown={radioKeys}>
             <button role="radio" aria-checked={mode() === "auto"} onClick={() => setNetworks({ mode: "auto" })}>
               Automatic
             </button>
@@ -142,7 +174,7 @@ export function Setup() {
               {(i) => (
                 <li>
                   <Show when={mode() === "only"} fallback={<span class="tag" classList={{ on: i.has_gateway }}>{i.has_gateway ? "[UP ]" : "[LAN]"}</span>}>
-                    <button class="switch" role="switch" aria-checked={chosen().includes(i.name)} onClick={() => toggleNet(i.name)}>
+                    <button class="switch" role="switch" aria-checked={chosen().includes(i.name)} aria-label={`Use ${i.label}`} onClick={() => toggleNet(i.name)}>
                       <span aria-hidden="true">{chosen().includes(i.name) ? "[ON ]" : "[OFF]"}</span>
                     </button>
                   </Show>
@@ -201,7 +233,7 @@ export function Setup() {
 
         <section>
           <h3 class="lbl">Look</h3>
-          <div class="seg" role="radiogroup" aria-label="Theme">
+          <div class="seg" role="radiogroup" aria-label="Theme" onKeyDown={radioKeys}>
             <button role="radio" aria-checked={theme() === "dark"} onClick={() => setTheme("dark")}>
               Dark
             </button>
@@ -209,7 +241,7 @@ export function Setup() {
               Light
             </button>
           </div>
-          <div class="swatches" role="radiogroup" aria-label="Accent colour">
+          <div class="swatches" role="radiogroup" aria-label="Accent colour" onKeyDown={radioKeys}>
             <For each={ACCENTS}>
               {(a) => (
                 <button role="radio" aria-checked={accent() === a} data-swatch={a} onClick={() => setAccent(a)}>

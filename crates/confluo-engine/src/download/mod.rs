@@ -900,7 +900,7 @@ pub async fn download(
         {
             // The answer to the probe is the file arriving from byte 0. Give it the
             // first lease before any other connection can take those bytes.
-            let lease = ctx.sched.lock().unwrap().acquire(0.0);
+            let lease = ctx.sched.lock().unwrap().acquire_front(0.0);
             match lease {
                 Some(lease) if lease.start == 0 => {
                     let guard = ActiveGuard::new(ctx.clone(), run.shared.clone(), 0);

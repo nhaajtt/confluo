@@ -199,13 +199,23 @@ impl Scheduler {
     /// Gives the caller a range to fetch. `rate` is the caller's measured speed in bytes/s
     /// (0 when unknown).
     pub fn acquire(&mut self, rate: f64) -> Option<Lease> {
+        self.acquire_where(rate, !self.cfg.equal_split)
+    }
+
+    /// Like [`acquire`](Self::acquire), but always from the first free byte: for a
+    /// stream that is already arriving from the start of the file.
+    pub fn acquire_front(&mut self, rate: f64) -> Option<Lease> {
+        self.acquire_where(rate, true)
+    }
+
+    fn acquire_where(&mut self, rate: f64, front: bool) -> Option<Lease> {
         let piece = self.piece_for(rate, false);
         // With long leases, new work is cut from the far end. The bytes right behind
         // a running stream stay free, so it can grow into them without a new request.
-        let taken = if self.cfg.equal_split {
-            self.pending.take_back(piece, self.cfg.min_piece)
-        } else {
+        let taken = if front {
             self.pending.take_front(piece, self.cfg.min_piece)
+        } else {
+            self.pending.take_back(piece, self.cfg.min_piece)
         };
         let (start, end) = match taken {
             Some(r) => r,
@@ -355,6 +365,15 @@ mod tests {
             min_steal_eta_secs: 0.0,
             equal_split: false,
         }
+    }
+
+    #[test]
+    fn a_stream_from_the_start_gets_the_start_even_with_equal_split() {
+        let mut s = Scheduler::new(SchedConfig { equal_split: true, ..cfg() }, RangeSet::full(100 << 20));
+        let head = s.acquire_front(0.0).unwrap();
+        assert_eq!(head.start, 0);
+        let next = s.acquire(0.0).unwrap();
+        assert!(next.start > head.end(), "the next lease is cut from the far end");
     }
 
     #[test]
