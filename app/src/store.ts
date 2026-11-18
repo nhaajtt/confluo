@@ -45,7 +45,11 @@ function record(item: Item) {
   setTick((n) => n + 1);
 }
 
+// Ids are never reused, so an update that arrives after its row was removed is stale.
+const gone = new Set<number>();
+
 function upsert(item: Item) {
+  if (gone.has(item.id)) return;
   record(item);
   const i = items.findIndex((x) => x.id === item.id);
   if (i < 0) {
@@ -73,6 +77,7 @@ export async function init() {
   await onEvents({
     item: upsert,
     removed: (id) => {
+      gone.add(id);
       history.delete(id);
       setItems(produce((list) => {
         const i = list.findIndex((x) => x.id === id);
@@ -82,7 +87,7 @@ export async function init() {
     },
     settings: (s) => {
       setSettings(s);
-      void refreshNetwork();
+      refreshNetwork().catch(() => {});
     },
     resync: () => void loadList(),
   });
@@ -91,7 +96,8 @@ export async function init() {
   setBridge(b);
   await Promise.all([loadList(), refreshNetwork()]);
   // Interfaces come and go; a slow poll keeps the footer honest without events.
-  setInterval(() => void refreshNetwork(), 5000);
+  // A poll that fails (the machine is busy waking up, say) keeps the last answer.
+  setInterval(() => refreshNetwork().catch(() => {}), 5000);
 }
 
 export function totalRate(): number {
