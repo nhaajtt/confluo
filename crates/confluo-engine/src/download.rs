@@ -708,7 +708,10 @@ fn plan_paths(spec: &Spec, p: &Probe) -> (Paths, Option<Journal>) {
     if !busy.contains(&part)
         && let Some(j) = journal::load(&jpath)
     {
-        let same_link = j.urls.first().map(String::as_str) == spec.urls.first().map(Url::as_str);
+        let same_link = match (j.urls.first(), spec.urls.first()) {
+            (Some(recorded), Some(url)) => journal::same_link(recorded, url.as_str()),
+            _ => false,
+        };
         let same_etag = match (&j.etag, &p.etag) {
             (Some(a), Some(b)) => a == b,
             _ => true,
@@ -925,7 +928,7 @@ pub async fn download(
 
     let journal_of = |done: RangeSet| Journal {
         version: journal::VERSION,
-        urls: spec.urls.iter().map(Url::to_string).collect(),
+        urls: spec.urls.iter().map(|u| journal::link_key(u.as_str())).collect(),
         size,
         etag: primary.etag.clone(),
         last_modified: primary.last_modified.clone(),

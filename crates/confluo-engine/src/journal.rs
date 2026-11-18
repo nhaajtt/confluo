@@ -9,6 +9,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use crate::ranges::RangeSet;
 
@@ -17,7 +18,8 @@ pub const VERSION: u32 = 1;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Journal {
     pub version: u32,
-    /// The links the user gave (first is the primary, the rest are mirrors).
+    /// The links the user gave (first is the primary, the rest are mirrors), each
+    /// written as its [`link_key`]. Journals from before 0.2 hold the links in full.
     pub urls: Vec<String>,
     pub size: Option<u64>,
     pub etag: Option<String>,
@@ -25,6 +27,20 @@ pub struct Journal {
     /// Final file name inside the destination folder.
     pub file_name: String,
     pub done: RangeSet,
+}
+
+/// How a link is written into a journal. The journal sits in the download folder,
+/// which is often synced or shared, so it holds a digest of the link instead of a
+/// signed address or a password; a digest is all that telling links apart needs.
+pub fn link_key(url: &str) -> String {
+    let digest = Sha256::digest(url.as_bytes());
+    let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+    format!("sha256:{hex}")
+}
+
+/// Whether a link recorded in a journal, as a digest or (older journals) in full, is `url`.
+pub fn same_link(recorded: &str, url: &str) -> bool {
+    recorded == url || recorded == link_key(url)
 }
 
 pub fn journal_path(part: &Path) -> PathBuf {
@@ -70,7 +86,7 @@ pub fn exists_for(dir: &Path, url: &str) -> bool {
         .map(|e| e.path())
         .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(".confluo-journal")))
         .filter_map(|p| load(&p))
-        .any(|j| j.urls.first().map(String::as_str) == Some(url) && !j.done.is_empty())
+        .any(|j| j.urls.first().is_some_and(|r| same_link(r, url)) && !j.done.is_empty())
 }
 
 pub fn remove(path: &Path) {
@@ -111,5 +127,17 @@ mod tests {
         assert_eq!(load(&p).unwrap(), j);
         fs::write(&p, b"{ not json").unwrap();
         assert!(load(&p).is_none());
+    }
+
+    #[test]
+    fn links_are_recognised_by_digest_and_in_full() {
+        let url = "https://user:pass@example.com/f.zip?sig=abc";
+        let key = link_key(url);
+        assert!(key.starts_with("sha256:") && !key.contains("pass") && !key.contains("sig"));
+        assert!(same_link(&key, url));
+        // A journal written before links were stored as digests still matches.
+        assert!(same_link(url, url));
+        assert!(!same_link(&key, "https://example.com/f.zip"));
+        assert!(!same_link("https://example.com/f.zip", url));
     }
 }

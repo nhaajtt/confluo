@@ -306,3 +306,46 @@ async fn finished_file_is_marked_as_downloaded() {
     assert!(mark.contains("HostUrl=http://127.0.0.1"), "{mark}");
     assert!(!mark.contains("hunter2") && !mark.contains("someone"), "{mark}");
 }
+
+/// The resume record next to a paused download names its link by a digest, so a
+/// signed link or a password never sits in the download folder; resuming still works.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn paused_download_keeps_no_secret_link_on_disk() {
+    let size = 6 * MIB;
+    let srv = Server::local(Behavior {
+        size,
+        seed: 36,
+        rate_total: Some(2 * MIB),
+        token: Some("tok3n-secret".into()),
+        ..Default::default()
+    })
+    .await;
+    let link = format!("http://someone:hunter2@{}/file?t=tok3n-secret", srv.addr);
+    let dir = tempfile::tempdir().unwrap();
+    let (_rtx, rrx) = watch::channel(vec![Route::system()]);
+    let (ctx, crx) = watch::channel(Command::Run);
+    let first = download(spec(dir.path(), std::slice::from_ref(&link)), cfg(), rrx.clone(), crx, &mut |s| {
+        if s.done > MIB {
+            let _ = ctx.send(Command::Pause);
+        }
+    })
+    .await;
+    assert_eq!(first.unwrap(), Outcome::Paused);
+    let mut journals = 0;
+    for e in std::fs::read_dir(dir.path()).unwrap().filter_map(|e| e.ok()) {
+        if e.file_name().to_string_lossy().ends_with("-journal") {
+            journals += 1;
+            let text = std::fs::read_to_string(e.path()).unwrap();
+            assert!(!text.contains("tok3n") && !text.contains("hunter2"), "{text}");
+        }
+    }
+    assert_eq!(journals, 1);
+    srv.behavior(|b| b.rate_total = None);
+    let before = srv.stats().body_bytes.load(Ordering::Relaxed);
+    let (_c2, crx2) = watch::channel(Command::Run);
+    let second = download(spec(dir.path(), &[link]), cfg(), rrx, crx2, &mut |_| {}).await;
+    let Ok(Outcome::Completed { path, .. }) = second else { panic!("{second:?}") };
+    assert_eq!(std::fs::read(path).unwrap(), content(36, size));
+    let again = srv.stats().body_bytes.load(Ordering::Relaxed) - before;
+    assert!(again < size - MIB + 2 * MIB, "the resume started over: fetched {again}");
+}

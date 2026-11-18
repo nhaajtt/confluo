@@ -504,8 +504,12 @@ impl Manager {
                     && !st.items.iter().any(|other| part_of(other).as_ref() == Some(&part))
                 {
                     let journal = crate::journal::journal_path(&part);
-                    let ours = crate::journal::load(&journal)
-                        .is_none_or(|j| j.urls.first() == item.rec.urls.first());
+                    let ours = crate::journal::load(&journal).is_none_or(|j| {
+                        match (j.urls.first(), item.rec.urls.first().and_then(|u| Url::parse(u).ok())) {
+                            (Some(recorded), Some(url)) => crate::journal::same_link(recorded, url.as_str()),
+                            _ => false,
+                        }
+                    });
                     if ours {
                         let _ = std::fs::remove_file(journal);
                         let _ = std::fs::remove_file(part);
