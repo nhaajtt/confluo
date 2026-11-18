@@ -129,9 +129,14 @@ fn describe(requested: &Url, fetched: &Fetched, last: Option<u64>) -> Result<Pro
     Ok(out)
 }
 
+/// Most a probe answer may hold and still be read to its end for the connection's sake.
+const DRAIN_LIMIT: usize = 64 * 1024;
+
 /// Reads a (tiny) response body to its end so the connection can be used again.
+/// A body that is not tiny is abandoned with its connection instead.
 async fn drain(resp: Response<Incoming>) -> bool {
-    matches!(tokio::time::timeout(Duration::from_secs(2), resp.into_body().collect()).await, Ok(Ok(_)))
+    let body = http_body_util::Limited::new(resp.into_body(), DRAIN_LIMIT);
+    matches!(tokio::time::timeout(Duration::from_secs(2), body.collect()).await, Ok(Ok(_)))
 }
 
 /// Probes `url` through `bind` by asking for its first byte, then a second

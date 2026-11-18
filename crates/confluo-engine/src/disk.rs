@@ -198,8 +198,16 @@ pub fn replace_file(from: &Path, to: &Path) -> io::Result<()> {
 }
 
 /// Opens (or creates) the partial file and reserves space for it without zero-filling.
+/// A `fresh` file must not exist yet: one that does belongs to another download.
 pub fn open_part(path: &Path, size: Option<u64>, fresh: bool) -> io::Result<File> {
-    let file = OpenOptions::new().read(true).write(true).create(true).truncate(fresh).open(path)?;
+    let mut options = OpenOptions::new();
+    options.read(true).write(true);
+    if fresh {
+        options.create_new(true);
+    } else {
+        options.create(true);
+    }
+    let file = options.open(path)?;
     if let Some(size) = size
         && file.metadata()?.len() != size
     {

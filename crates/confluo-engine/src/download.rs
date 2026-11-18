@@ -439,7 +439,9 @@ async fn fetch(
         let Some((a, b, total)) = http::content_range(&resp) else {
             return Err(Error::Protocol("206 without Content-Range".into()));
         };
-        if a != start || b < a {
+        // A range reaching past the end of the file cannot be about this file (and
+        // `b + 1` must not wrap).
+        if a != start || b < a || ctx.size.is_some_and(|s| b >= s) || b == u64::MAX {
             return Err(Error::Protocol(format!("asked for byte {start}, server sent {a}-{b}")));
         }
         if let (Some(total), Some(size)) = (total, ctx.size)
@@ -595,9 +597,13 @@ async fn fetch_bytes(
     if fetched.response.status() != StatusCode::PARTIAL_CONTENT {
         return Err(Error::Protocol("no range support".into()));
     }
-    let body = tokio::time::timeout(opts.header_timeout, fetched.response.into_body().collect())
+    // One byte more than asked for is enough to tell a wrong answer; reading on would
+    // let a server fill memory.
+    let limited = http_body_util::Limited::new(fetched.response.into_body(), len as usize + 1);
+    let body = tokio::time::timeout(opts.header_timeout, limited.collect())
         .await
-        .map_err(|_| Error::Timeout("sample"))??;
+        .map_err(|_| Error::Timeout("sample"))?
+        .map_err(|_| Error::Protocol("oversized sample".into()))?;
     let bytes = body.to_bytes();
     if bytes.len() as u64 != len {
         return Err(Error::Protocol("short sample".into()));
@@ -676,15 +682,32 @@ struct Paths {
     name: String,
     part: PathBuf,
     journal: PathBuf,
+    /// Keeps other downloads in this process away from `part` until this one ends.
+    _claim: Claim,
+}
+
+/// Partial files being written by downloads in this process. A second download of
+/// the same link must neither adopt nor overwrite one of them.
+static IN_USE: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
+
+struct Claim(PathBuf);
+
+impl Drop for Claim {
+    fn drop(&mut self) {
+        IN_USE.lock().unwrap_or_else(std::sync::PoisonError::into_inner).retain(|p| p != &self.0);
+    }
 }
 
 /// Picks the file to write to: an interrupted download of the same link if there
 /// is one, otherwise a name that collides with nothing.
 fn plan_paths(spec: &Spec, p: &Probe) -> (Paths, Option<Journal>) {
+    let mut busy = IN_USE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let base = name::sanitize(spec.file_name.as_deref().or(p.file_name.as_deref()).unwrap_or("download"));
     let part = name::part_path(&spec.dir, &base);
     let jpath = journal::journal_path(&part);
-    if let Some(j) = journal::load(&jpath) {
+    if !busy.contains(&part)
+        && let Some(j) = journal::load(&jpath)
+    {
         let same_link = j.urls.first().map(String::as_str) == spec.urls.first().map(Url::as_str);
         let same_etag = match (&j.etag, &p.etag) {
             (Some(a), Some(b)) => a == b,
@@ -697,16 +720,23 @@ fn plan_paths(spec: &Spec, p: &Probe) -> (Paths, Option<Journal>) {
         let part_ok = std::fs::metadata(&part).is_ok_and(|m| p.size.is_none_or(|s| m.len() == s));
         if same_link && j.size == p.size && p.size.is_some() && p.ranges && same_etag && same_date && part_ok
         {
-            return (Paths { name: base, part, journal: jpath }, Some(j));
+            busy.push(part.clone());
+            let claim = Claim(part.clone());
+            return (Paths { name: base, part, journal: jpath, _claim: claim }, Some(j));
         }
     }
     let name = name::unique(&spec.dir, &base, |f| {
         f.exists()
-            || f.file_name().and_then(|n| n.to_str()).is_some_and(|n| name::part_path(&spec.dir, n).exists())
+            || f.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
+                let part = name::part_path(&spec.dir, n);
+                part.exists() || busy.contains(&part)
+            })
     });
     let part = name::part_path(&spec.dir, &name);
     let journal = journal::journal_path(&part);
-    (Paths { name, part, journal }, None)
+    busy.push(part.clone());
+    let claim = Claim(part.clone());
+    (Paths { name, part, journal, _claim: claim }, None)
 }
 
 /// Runs one download until it completes, is paused or cancelled, or fails for good.
