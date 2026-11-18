@@ -31,6 +31,10 @@ use tokio::net::TcpListener;
 /// Ports tried in order. Fixed, so the extension knows where to look.
 pub const PORTS: [u16; 3] = [47610, 47611, 47612];
 const MAX_BODY: usize = 64 * 1024;
+#[cfg(not(test))]
+const BODY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+#[cfg(test)]
+const BODY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(1);
 
 /// A link the browser hands over, with what is needed to fetch it as the browser would.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -201,8 +205,10 @@ async fn handle(
             if !json {
                 return Ok(fail(StatusCode::UNSUPPORTED_MEDIA_TYPE, "json only", origin));
             }
-            let Ok(body) = Limited::new(req.into_body(), MAX_BODY).collect().await else {
-                return Ok(fail(StatusCode::PAYLOAD_TOO_LARGE, "request too large", origin));
+            // A caller that stops sending halfway must not hold the connection for ever.
+            let read = tokio::time::timeout(BODY_TIMEOUT, Limited::new(req.into_body(), MAX_BODY).collect());
+            let Ok(Ok(body)) = read.await else {
+                return Ok(fail(StatusCode::PAYLOAD_TOO_LARGE, "request too large or too slow", origin));
             };
             let body = body.to_bytes();
             if let Some(sig) = &signature {
@@ -384,5 +390,21 @@ mod tests {
         let ping = format!("GET /v1/ping HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n");
         let (code, text) = send(p, ping).await;
         assert!(code == 200 && text.contains(r#""paired":false"#) && !text.contains(&token));
+    }
+
+    #[tokio::test]
+    async fn a_caller_that_stops_halfway_is_let_go() {
+        let bridge = serve("0".repeat(48), &[0], Arc::new(|_| Ok(1))).await.unwrap();
+        let p = bridge.port;
+        let mut s = tokio::net::TcpStream::connect(("127.0.0.1", p)).await.unwrap();
+        let head = format!(
+            "POST /v1/offer HTTP/1.1\r\nHost: 127.0.0.1:{p}\r\nAuthorization: Bearer {}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"url\":",
+            "0".repeat(48)
+        );
+        s.write_all(head.as_bytes()).await.unwrap();
+        let mut out = String::new();
+        let read = tokio::time::timeout(BODY_TIMEOUT * 3, s.read_to_string(&mut out)).await;
+        assert!(read.is_ok(), "the bridge waited for the rest of the body for ever");
+        assert!(out.starts_with("HTTP/1.1 413"), "{out}");
     }
 }
