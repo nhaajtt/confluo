@@ -137,12 +137,6 @@ pub fn is_local(url: &Url) -> bool {
     }
 }
 
-/// Whether the URL's host is a name that resolves to a local address.
-async fn resolves_local(url: &Url) -> bool {
-    matches!(url.host(), Some(Host::Domain(_)))
-        && resolve(url).await.is_ok_and(|a| a.iter().any(|s| is_local_ip(s.ip())))
-}
-
 /// Resolves a URL's host with the system resolver.
 pub async fn resolve(url: &Url) -> Result<Vec<SocketAddr>> {
     let port = url.port_or_known_default().unwrap_or(80);
@@ -301,7 +295,7 @@ pub async fn get(
     let home = Origin::of(opts.secrets_for.as_ref().unwrap_or(url))?;
     let start = opts.secrets_for.as_ref().unwrap_or(url).clone();
     let mut started_local = is_local(url) || is_local(&start);
-    let mut start_checked = false;
+    let mut redirected = false;
     let mut url = url.clone();
     for _ in 0..=MAX_REDIRECTS {
         let origin = Origin::of(&url)?;
@@ -317,6 +311,17 @@ pub async fn get(
                 }
             };
             let conn = slot.as_mut().expect("connection just ensured");
+            // Whether an address is local is judged by where the connection really
+            // went, not by a name lookup a hostile name server could answer
+            // differently from one moment to the next. A link that itself reaches a
+            // machine nearby (`nas`, `printer.lan`) may be redirected within the
+            // local network; a public site must not point the downloader there.
+            if !redirected {
+                started_local |= is_local_ip(conn.remote.ip());
+            } else if !started_local && is_local_ip(conn.remote.ip()) {
+                *slot = None;
+                return Err(Error::Protocol("refused a redirect to a local address".into()));
+            }
             let req = build(&url, opts, ask, send_secrets)?;
             let sent = tokio::time::timeout(opts.header_timeout, async {
                 conn.sender.ready().await?;
@@ -344,19 +349,10 @@ pub async fn get(
             && let Some(loc) = response.headers().get(header::LOCATION).and_then(|v| v.to_str().ok())
         {
             let next = url.join(loc).map_err(|e| Error::InvalidUrl(e.to_string()))?;
-            // A public site must not be able to point the downloader at this
-            // computer or at devices on the local network, by address or by a name
-            // that resolves to one. A link that itself names a local machine (`nas`,
-            // `printer.lan`) may of course be redirected within the local network.
-            if !started_local && (is_local(&next) || resolves_local(&next).await) {
-                if !start_checked {
-                    start_checked = true;
-                    started_local = resolves_local(&start).await;
-                }
-                if !started_local {
-                    return Err(Error::Protocol("refused a redirect to a local address".into()));
-                }
+            if !started_local && is_local(&next) {
+                return Err(Error::Protocol("refused a redirect to a local address".into()));
             }
+            redirected = true;
             // The redirect body is not read, so this connection cannot be reused.
             *slot = None;
             url = next;
