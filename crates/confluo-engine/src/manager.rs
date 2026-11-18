@@ -212,6 +212,34 @@ fn now() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }
 
+/// Whether `dir` may be used as a download folder: a full path, with no `..` and
+/// no device or `\\?\` namespace that would get round the usual name checks.
+/// Network shares (`\\server\share`) are allowed.
+pub fn check_folder(dir: &Path) -> Result<(), String> {
+    use std::path::{Component, Prefix};
+    if !dir.is_absolute() {
+        return Err("the download folder must be a full path".into());
+    }
+    for c in dir.components() {
+        match c {
+            Component::ParentDir => return Err("the download folder must not contain \"..\"".into()),
+            Component::Prefix(p)
+                if matches!(
+                    p.kind(),
+                    Prefix::Verbatim(_)
+                        | Prefix::VerbatimDisk(_)
+                        | Prefix::VerbatimUNC(..)
+                        | Prefix::DeviceNS(_)
+                ) =>
+            {
+                return Err("the download folder must be an ordinary folder path".into());
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 fn is_secret(name: &str) -> bool {
     matches!(name.to_ascii_lowercase().as_str(), "cookie" | "authorization" | "proxy-authorization")
 }
@@ -344,6 +372,9 @@ impl Manager {
             if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
                 return Err(format!("{u}: only http and https links are supported"));
             }
+        }
+        if let Some(dir) = &new.dir {
+            check_folder(dir)?;
         }
         if let Some(c) = &new.checksum
             && !c.trim().is_empty()

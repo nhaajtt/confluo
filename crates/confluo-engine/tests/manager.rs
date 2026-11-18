@@ -263,3 +263,28 @@ async fn removing_an_unstarted_twin_keeps_the_others_progress() {
     wait_for(&m, "completion", |m| m.list()[0].status == Status::Completed).await;
     assert!(std::fs::read(files.path().join("twin.bin")).unwrap() == content(22, 8 * MIB));
 }
+
+/// A download folder must be an ordinary full path; device paths, `..` and
+/// relative paths are refused, network shares are not.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn odd_download_folders_are_refused() {
+    use confluo_engine::manager::check_folder;
+    use std::path::Path;
+    let state = tempfile::tempdir().unwrap();
+    let files = tempfile::tempdir().unwrap();
+    let m = Manager::open(state.path(), files.path()).unwrap();
+    let mut bad = vec![files.path().join("..").join("elsewhere"), "relative\\dir".into()];
+    if cfg!(windows) {
+        bad.extend([r"\\?\C:\Windows".into(), r"\\.\PhysicalDrive0".into(), r"\\?\UNC\srv\share".into()]);
+    }
+    for dir in bad {
+        assert!(check_folder(&dir).is_err(), "{}", dir.display());
+        let added = m.add(NewDownload { dir: Some(dir.clone()), ..new("http://127.0.0.1:9/x".into(), "x") });
+        assert!(added.is_err(), "{}", dir.display());
+    }
+    assert!(check_folder(files.path()).is_ok());
+    if cfg!(windows) {
+        assert!(check_folder(Path::new(r"\\nas\share\downloads")).is_ok());
+    }
+    assert!(m.list().is_empty());
+}

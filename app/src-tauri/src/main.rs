@@ -92,9 +92,7 @@ fn get_settings(app: State<'_, App>) -> Settings {
 
 #[tauri::command]
 fn set_settings(app: State<'_, App>, settings: Settings) -> Result<(), String> {
-    if !settings.download_dir.is_absolute() {
-        return Err("the download folder must be a full path".into());
-    }
+    confluo_engine::manager::check_folder(&settings.download_dir)?;
     std::fs::create_dir_all(&settings.download_dir).map_err(|e| format!("cannot use that folder: {e}"))?;
     app.manager.set_settings(settings);
     Ok(())
