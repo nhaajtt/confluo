@@ -207,8 +207,10 @@ async fn handle(
             }
             // A caller that stops sending halfway must not hold the connection for ever.
             let read = tokio::time::timeout(BODY_TIMEOUT, Limited::new(req.into_body(), MAX_BODY).collect());
-            let Ok(Ok(body)) = read.await else {
-                return Ok(fail(StatusCode::PAYLOAD_TOO_LARGE, "request too large or too slow", origin));
+            let body = match read.await {
+                Ok(Ok(body)) => body,
+                Ok(Err(_)) => return Ok(fail(StatusCode::PAYLOAD_TOO_LARGE, "request too large", origin)),
+                Err(_) => return Ok(fail(StatusCode::REQUEST_TIMEOUT, "request too slow", origin)),
             };
             let body = body.to_bytes();
             if let Some(sig) = &signature {
@@ -405,6 +407,6 @@ mod tests {
         let mut out = String::new();
         let read = tokio::time::timeout(BODY_TIMEOUT * 3, s.read_to_string(&mut out)).await;
         assert!(read.is_ok(), "the bridge waited for the rest of the body for ever");
-        assert!(out.starts_with("HTTP/1.1 413"), "{out}");
+        assert!(out.starts_with("HTTP/1.1 408"), "{out}");
     }
 }
