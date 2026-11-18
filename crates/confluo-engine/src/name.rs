@@ -8,7 +8,8 @@ use url::Url;
 const MAX_NAME_BYTES: usize = 200;
 const RESERVED: &[&str] = &[
     "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "COM¹", "COM²", "COM³", "LPT¹",
+    "LPT²", "LPT³", "CONIN$", "CONOUT$",
 ];
 
 /// File name from a `Content-Disposition` header value.
@@ -112,6 +113,8 @@ mod tests {
         assert_eq!(sanitize("invoice\u{202e}fdp.exe"), "invoicefdp.exe");
         assert_eq!(sanitize("zero\u{200b}width.txt"), "zerowidth.txt");
         assert_eq!(sanitize("CON .txt"), "_CON .txt");
+        assert_eq!(sanitize("com¹.txt"), "_com¹.txt");
+        assert_eq!(sanitize("conout$"), "_conout$");
         assert_eq!(sanitize("nul"), "_nul");
         let long = format!("{}. .txt", "a".repeat(300));
         let cut = sanitize(&long);
