@@ -213,3 +213,53 @@ async fn concurrent_saves_never_leave_a_broken_list() {
     let on_disk: serde_json::Value = serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
     assert_eq!(on_disk["items"].as_array().unwrap().len(), kept, "the last save lost changes");
 }
+
+/// Pausing a download that is being removed must not keep it half alive: the row
+/// goes, and so does its partial file.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn pause_right_after_remove_still_cleans_up() {
+    let srv =
+        Server::local(Behavior { size: 8 * MIB, seed: 21, rate_total: Some(2 * MIB), ..Default::default() })
+            .await;
+    let state = tempfile::tempdir().unwrap();
+    let files = tempfile::tempdir().unwrap();
+    let m = Manager::open(state.path(), files.path()).unwrap();
+    m.set_settings(settings(files.path(), 1));
+    let id = m.add(new(srv.url(), "gone.bin")).unwrap();
+    wait_for(&m, "data", |m| m.list().iter().any(|i| i.done > 256 * 1024)).await;
+    m.remove(id, true);
+    m.pause(id);
+    wait_for(&m, "removal", |m| m.list().is_empty()).await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    let left: Vec<_> = std::fs::read_dir(files.path())
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    assert!(left.is_empty(), "left behind: {left:?}");
+}
+
+/// Removing a download that never started must not delete the partial file of
+/// another download that happens to want the same name.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn removing_an_unstarted_twin_keeps_the_others_progress() {
+    let srv =
+        Server::local(Behavior { size: 8 * MIB, seed: 22, rate_total: Some(2 * MIB), ..Default::default() })
+            .await;
+    let state = tempfile::tempdir().unwrap();
+    let files = tempfile::tempdir().unwrap();
+    let m = Manager::open(state.path(), files.path()).unwrap();
+    m.set_settings(settings(files.path(), 1));
+    let first = m.add(new(srv.url(), "twin.bin")).unwrap();
+    wait_for(&m, "data", |m| m.list().iter().any(|i| i.id == first && i.done > 512 * 1024)).await;
+    m.pause(first);
+    wait_for(&m, "pause", |m| m.list().iter().any(|i| i.id == first && i.status == Status::Paused)).await;
+    let twin = m.add(NewDownload { paused: true, ..new(srv.url(), "twin.bin") }).unwrap();
+    m.remove(twin, true);
+    wait_for(&m, "removal", |m| m.list().len() == 1).await;
+    assert!(files.path().join("twin.bin.confluo").exists(), "the other download's partial file was deleted");
+    m.resume(first);
+    srv.behavior(|b| b.rate_total = None);
+    wait_for(&m, "completion", |m| m.list()[0].status == Status::Completed).await;
+    assert!(std::fs::read(files.path().join("twin.bin")).unwrap() == content(22, 8 * MIB));
+}

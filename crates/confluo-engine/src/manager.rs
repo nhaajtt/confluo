@@ -407,6 +407,9 @@ impl Manager {
     /// Pauses a queued or running download. Progress is kept.
     pub fn pause(&self, id: u64) {
         self.inner.change(id, |item| match item.rec.status {
+            // A removal under way must not be turned into a pause: the row would go
+            // and its partial file would stay behind for good.
+            Status::Running if item.remove_when_stopped => {}
             Status::Running => {
                 item.resume_when_stopped = false;
                 if let Some(c) = &item.control {
@@ -456,13 +459,24 @@ impl Manager {
                 {
                     let _ = std::fs::remove_file(p);
                 }
-                // A paused or failed download leaves its partial file behind.
-                let name =
-                    item.snapshot.as_ref().map_or(item.rec.shown_name.as_str(), |s| s.file_name.as_str());
-                if item.rec.status != Status::Completed && !name.is_empty() {
-                    let part = crate::name::part_path(&item.rec.dir, &crate::name::sanitize(name));
-                    let _ = std::fs::remove_file(crate::journal::journal_path(&part));
-                    let _ = std::fs::remove_file(part);
+                // A paused or failed download leaves its partial file behind. The file is
+                // found by name, so it is only deleted when it is this download's: its journal
+                // names this link, and no other row of the list could resume from it.
+                let part_of = |i: &Item| {
+                    let name = i.snapshot.as_ref().map_or(i.rec.shown_name.as_str(), |s| s.file_name.as_str());
+                    (!name.is_empty()).then(|| crate::name::part_path(&i.rec.dir, &crate::name::sanitize(name)))
+                };
+                if item.rec.status != Status::Completed
+                    && let Some(part) = part_of(&item)
+                    && !st.items.iter().any(|other| part_of(other).as_ref() == Some(&part))
+                {
+                    let journal = crate::journal::journal_path(&part);
+                    let ours = crate::journal::load(&journal)
+                        .is_none_or(|j| j.urls.first() == item.rec.urls.first());
+                    if ours {
+                        let _ = std::fs::remove_file(journal);
+                        let _ = std::fs::remove_file(part);
+                    }
                 }
             }
         }
