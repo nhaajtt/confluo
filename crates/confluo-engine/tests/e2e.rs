@@ -636,3 +636,71 @@ async fn server_allowing_one_connection_is_served_by_the_first_stream() {
     assert!(served <= 6, "{served} range requests served; the first stream should have carried the file");
     assert!(r.snaps.iter().any(|s| s.verdict == Verdict::ServerRefusing));
 }
+
+/// A server that names no version (no ETag, no Last-Modified) replaced the file
+/// with another of the same size while the download was paused. Resuming must
+/// not glue the new file's tail onto the old file's head.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn resume_from_a_server_without_versions_notices_a_changed_file() {
+    let size = 6 * MIB;
+    let srv = Server::local(Behavior {
+        size,
+        seed: 73,
+        etag: None,
+        last_modified: None,
+        rate_total: Some(2 * MIB),
+        ..Default::default()
+    })
+    .await;
+    let dir = tempfile::tempdir().unwrap();
+    let (_rtx, rrx) = watch::channel(vec![Route::system()]);
+    let (ctx, crx) = watch::channel(Command::Run);
+    let first = download(spec(dir.path(), &[srv.url()]), cfg(), rrx.clone(), crx, &mut |s| {
+        if s.done > 2 * MIB {
+            let _ = ctx.send(Command::Pause);
+        }
+    })
+    .await;
+    assert_eq!(first.unwrap(), Outcome::Paused);
+    srv.behavior(|b| {
+        b.seed = 74;
+        b.rate_total = None;
+    });
+    let (_c2, crx2) = watch::channel(Command::Run);
+    let second = download(spec(dir.path(), &[srv.url()]), cfg(), rrx, crx2, &mut |_| {}).await;
+    assert_file(&Run { result: second, snaps: Vec::new() }, 74, size);
+}
+
+/// The same, with the file unchanged: the check must not cost the resume.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn resume_from_a_server_without_versions_still_resumes() {
+    let size = 6 * MIB;
+    let srv = Server::local(Behavior {
+        size,
+        seed: 75,
+        etag: None,
+        last_modified: None,
+        rate_total: Some(2 * MIB),
+        ..Default::default()
+    })
+    .await;
+    let dir = tempfile::tempdir().unwrap();
+    let (_rtx, rrx) = watch::channel(vec![Route::system()]);
+    let (ctx, crx) = watch::channel(Command::Run);
+    let mut seen = 0;
+    let first = download(spec(dir.path(), &[srv.url()]), cfg(), rrx.clone(), crx, &mut |s| {
+        seen = s.done;
+        if s.done > 2 * MIB {
+            let _ = ctx.send(Command::Pause);
+        }
+    })
+    .await;
+    assert_eq!(first.unwrap(), Outcome::Paused);
+    srv.behavior(|b| b.rate_total = None);
+    let before = srv.stats().body_bytes.load(Ordering::Relaxed);
+    let (_c2, crx2) = watch::channel(Command::Run);
+    let second = download(spec(dir.path(), &[srv.url()]), cfg(), rrx, crx2, &mut |_| {}).await;
+    assert_file(&Run { result: second, snaps: Vec::new() }, 75, size);
+    let again = srv.stats().body_bytes.load(Ordering::Relaxed) - before;
+    assert!(again <= size - seen + 512 * 1024, "resume fetched {again}, only {} were missing", size - seen);
+}

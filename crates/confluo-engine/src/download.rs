@@ -638,6 +638,37 @@ async fn same_content(
     Ok(true)
 }
 
+/// Whether the server's validators show that a journal's bytes belong to the file it serves now.
+fn vouched_for(j: &Journal, p: &Probe) -> bool {
+    matches!((&j.etag, &p.etag), (Some(_), Some(_)))
+        || matches!((&j.last_modified, &p.last_modified), (Some(_), Some(_)))
+}
+
+/// Compares bytes already on disk with what the server sends for the same places:
+/// the start and the end of the first and the last stretch received. A sample that
+/// cannot be fetched proves nothing, so the bytes are kept as before.
+async fn still_the_same(
+    bind: Option<&BindSpec>,
+    primary: &Probe,
+    opts: &RequestOptions,
+    part: &Path,
+    done: &RangeSet,
+) -> bool {
+    let spans = done.spans();
+    let (Some(&(a, b)), Some(&(c, d))) = (spans.first(), spans.last()) else { return true };
+    let mut places = vec![(a, SAMPLE_LEN.min(b - a)), (d - SAMPLE_LEN.min(d - c), SAMPLE_LEN.min(d - c))];
+    places.dedup();
+    for (start, len) in places {
+        let Ok(theirs) = fetch_bytes(bind, &primary.url, opts, start, len).await else { return true };
+        match disk::read_at(part, start, len) {
+            Ok(ours) if ours == theirs => {}
+            Ok(_) => return false,
+            Err(_) => return true,
+        }
+    }
+    true
+}
+
 fn jitter(base: Duration) -> Duration {
     let r = std::collections::hash_map::RandomState::new().build_hasher().finish();
     base.mul_f64(0.8 + (r % 1000) as f64 / 2500.0)
@@ -863,7 +894,7 @@ pub async fn download(
     notes.clear();
 
     std::fs::create_dir_all(&spec.dir).map_err(Error::Disk)?;
-    let (paths, resumed) = plan_paths(&spec, &primary);
+    let (paths, mut resumed) = plan_paths(&spec, &primary);
     let size = primary.size;
     let whole = !primary.ranges || size.is_none();
     if whole && size.is_some() {
@@ -888,6 +919,18 @@ pub async fn download(
                 Err(e) => notes.push(format!("mirror skipped ({e}): {}", url.host_str().unwrap_or(""))),
             }
         }
+    }
+
+    // A server that names no version of the file cannot say whether it changed while
+    // the download was stopped. What is on disk is compared with what it serves now.
+    if let Some(j) = &resumed
+        && !vouched_for(j, &primary)
+        && !still_the_same(first_bind.as_ref(), &primary, &opts, &paths.part, &j.done).await
+    {
+        notes.push("the file changed on the server since the download stopped; starting over".into());
+        journal::remove(&paths.journal);
+        std::fs::remove_file(&paths.part).map_err(Error::Disk)?;
+        resumed = None;
     }
 
     let done = resumed.as_ref().map(|j| j.done.clone()).unwrap_or_default();

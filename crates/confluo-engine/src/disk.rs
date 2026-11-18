@@ -198,6 +198,24 @@ pub fn replace_file(from: &Path, to: &Path) -> io::Result<()> {
     }
 }
 
+/// Reads `len` bytes of `path` from `offset`.
+pub fn read_at(path: &Path, offset: u64, len: u64) -> io::Result<Vec<u8>> {
+    let file = File::open(path)?;
+    let mut buf = vec![0u8; len as usize];
+    let mut got = 0;
+    while got < buf.len() {
+        #[cfg(windows)]
+        let n = std::os::windows::fs::FileExt::seek_read(&file, &mut buf[got..], offset + got as u64)?;
+        #[cfg(unix)]
+        let n = std::os::unix::fs::FileExt::read_at(&file, &mut buf[got..], offset + got as u64)?;
+        if n == 0 {
+            return Err(io::ErrorKind::UnexpectedEof.into());
+        }
+        got += n;
+    }
+    Ok(buf)
+}
+
 /// Marks a finished download as coming from the internet (the "Mark of the Web"),
 /// so that Windows checks it on opening exactly as it checks a browser download.
 /// File systems without alternate streams (FAT, exFAT) cannot hold the mark;
