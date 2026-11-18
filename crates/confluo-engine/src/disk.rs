@@ -197,6 +197,25 @@ pub fn replace_file(from: &Path, to: &Path) -> io::Result<()> {
     }
 }
 
+/// Marks a finished download as coming from the internet (the "Mark of the Web"),
+/// so that Windows checks it on opening exactly as it checks a browser download.
+/// File systems without alternate streams (FAT, exFAT) cannot hold the mark;
+/// that is not an error. Credentials in the link are never written.
+pub fn mark_from_internet(path: &Path, from: &url::Url) {
+    #[cfg(windows)]
+    {
+        let mut host = from.clone();
+        let _ = host.set_username("");
+        let _ = host.set_password(None);
+        let mark = format!("[ZoneTransfer]\r\nZoneId=3\r\nHostUrl={host}\r\n");
+        let mut stream = path.as_os_str().to_owned();
+        stream.push(":Zone.Identifier");
+        let _ = std::fs::write(stream, mark);
+    }
+    #[cfg(not(windows))]
+    let _ = (path, from);
+}
+
 /// Opens (or creates) the partial file and reserves space for it without zero-filling.
 /// A `fresh` file must not exist yet: one that does belongs to another download.
 pub fn open_part(path: &Path, size: Option<u64>, fresh: bool) -> io::Result<File> {

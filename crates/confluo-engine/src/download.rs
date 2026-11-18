@@ -1399,6 +1399,7 @@ pub async fn download(
             let name = name::unique(&spec.dir, &paths.name, Path::exists);
             let dest = spec.dir.join(name);
             disk::replace_file(&paths.part, &dest).map_err(Error::Disk)?;
+            disk::mark_from_internet(&dest, &primary.url);
             journal::remove(&paths.journal);
             Ok(Outcome::Completed { path: dest, size: total })
         }

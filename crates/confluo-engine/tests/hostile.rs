@@ -239,3 +239,70 @@ async fn same_link_twice_at_once_gives_two_exact_files() {
         .count();
     assert_eq!(leftovers, 0);
 }
+
+/// Credentials given for the link stay with its site: a redirect to another
+/// origin gets none of them.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn redirect_to_another_site_carries_no_credentials() {
+    let size = 256 * 1024;
+    let data = Arc::new(content(34, size));
+    let seen = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let (served, heads) = (data.clone(), seen.clone());
+    let other = raw(move |head, _| {
+        heads.lock().unwrap().push(head.to_ascii_lowercase());
+        let (start, end) = asked_range(head).unwrap_or((0, None));
+        let end = end.unwrap_or(size - 1).min(size - 1);
+        (
+            format!(
+                "HTTP/1.1 206 Partial Content\r\nContent-Range: bytes {start}-{end}/{size}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                end + 1 - start
+            ),
+            Body::Bytes(served[start as usize..=end as usize].to_vec()),
+        )
+    })
+    .await;
+    let target = other.url();
+    let home = raw(move |_, _| {
+        (
+            format!(
+                "HTTP/1.1 302 Found\r\nLocation: {target}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            ),
+            Body::Bytes(Vec::new()),
+        )
+    })
+    .await;
+    let dir = tempfile::tempdir().unwrap();
+    let mut s = spec(dir.path(), &[home.url()]);
+    s.headers = vec![
+        ("Cookie".into(), "session=secret-cookie".into()),
+        ("Authorization".into(), "Bearer secret-auth".into()),
+        ("Proxy-Authorization".into(), "Basic secret-proxy".into()),
+        ("Referer".into(), "http://example.com/".into()),
+    ];
+    let result = run(s).await;
+    let Ok(Outcome::Completed { path, .. }) = result else { panic!("{result:?}") };
+    assert_eq!(std::fs::read(path).unwrap(), *data);
+    let heads = seen.lock().unwrap();
+    assert!(!heads.is_empty());
+    for h in heads.iter() {
+        assert!(!h.contains("secret"), "credentials followed the redirect: {h}");
+    }
+}
+
+/// On Windows a finished file carries the same "downloaded from the internet"
+/// mark a browser would give it, without the credentials of the link.
+#[cfg(windows)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn finished_file_is_marked_as_downloaded() {
+    let srv = Server::local(Behavior { size: 100_000, seed: 35, ..Default::default() }).await;
+    let dir = tempfile::tempdir().unwrap();
+    let url = srv.url().replacen("http://", "http://someone:hunter2@", 1);
+    let result = run(spec(dir.path(), &[url])).await;
+    let Ok(Outcome::Completed { path, .. }) = result else { panic!("{result:?}") };
+    let mut stream = path.as_os_str().to_owned();
+    stream.push(":Zone.Identifier");
+    let mark = std::fs::read_to_string(stream).expect("no mark of the web");
+    assert!(mark.contains("ZoneId=3"), "{mark}");
+    assert!(mark.contains("HostUrl=http://127.0.0.1"), "{mark}");
+    assert!(!mark.contains("hunter2") && !mark.contains("someone"), "{mark}");
+}

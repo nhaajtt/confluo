@@ -241,7 +241,8 @@ fn build(
     }
     for (name, value) in &opts.headers {
         let Ok(name) = HeaderName::from_bytes(name.as_bytes()) else { continue };
-        let secret = name == header::COOKIE || name == header::AUTHORIZATION;
+        let secret =
+            name == header::COOKIE || name == header::AUTHORIZATION || name == header::PROXY_AUTHORIZATION;
         if name == header::HOST
             || name == header::RANGE
             || name == header::ACCEPT_ENCODING
