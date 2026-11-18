@@ -82,6 +82,7 @@ builds and passes its tests on Linux and macOS.
 Needs Rust (stable, 1.88+), Node 22 and pnpm. On Windows the WebView2 runtime (part of Windows 11).
 
 ```sh
+bash scripts/check.sh                  # every check CI runs: format, lint, tests, app types and build
 cargo test --workspace                 # engine, bridge and test-server tests
 cargo build --release -p confluo-cli      # target/release/confluo(.exe), the engine without a window
 
@@ -123,6 +124,7 @@ installer, its SHA-256 and `install.ps1` with both filled in), ready to upload t
 | `extension/test/` | Drives the unpacked extension in real Chromium and Firefox against the real app |
 | `site/` | Download page (English and Vietnamese) and the PowerShell install script |
 | `bench/` | Benchmark harness, kill-and-outage soak, results |
+| `scripts/check.sh` | Every check in one command (CI runs it too) |
 
 ## How it works, and why
 
@@ -178,13 +180,20 @@ routing and parallel flows.
 - Cookies and credentials are sealed with Windows DPAPI before being saved; on other systems they
   are not saved at all. They go only to the origin of the link you gave: not to another host or
   port after a redirect, and never from HTTPS down to HTTP.
-- A redirect from a public site to this computer or to a private or link-local address is refused.
-  (Only addresses written as such are recognised; a public name that resolves to a private address
-  is not.)
+- A redirect from a public site to this computer or to a private, link-local, shared (100.64/10)
+  or IPv4-mapped address is refused. What counts is the address each connection really reaches, so
+  a public name that resolves to a private address is refused too. A link that itself points at a
+  machine nearby (`http://nas/...`) may still be redirected within the local network.
+- Finished files carry the Mark of the Web, so Windows checks them on opening (SmartScreen, Office
+  Protected View) exactly like a browser download. The mark holds the address without credentials
+  or query.
+- The resume journal next to a partial file names the link by a SHA-256 digest, so signed links and
+  passwords never sit in the download folder.
 - The browser bridge listens on `127.0.0.1` only and refuses requests with a web `Origin` or a wrong
   `Host` (DNS rebinding). The extension never sends the pairing code: it checks that the listener
   can sign a random number with the code (so another program on that port gets nothing), and signs
   each offer, with a timestamp, using HMAC-SHA256. Without a secret, any local program could do the same.
+  A caller that stops sending halfway is dropped after ten seconds.
 - File names from servers lose path separators, reserved Windows names and invisible characters
   that reorder text (so `exe.pdf` tricks do not survive).
 - The saved list is written whole and flushed before it replaces the old one. On load, limits in it
@@ -279,14 +288,14 @@ Not measured, and therefore not claimed:
 
 ## Tests
 
-`cargo test --workspace`: 74 tests on Windows (73 elsewhere), plus one slow test run with
+`cargo test --workspace`: 92 tests on Windows (a few fewer elsewhere: they cover Windows-only behaviour), plus one slow test run with
 `--release -- --ignored` that downloads a 4.2 GiB file and compares every byte. The engine tests
 run real downloads against the misbehaving server and compare every completed file byte for byte.
 Covered: parallel ranges, servers without ranges or without a length, dropped and stalled
 connections, refused connections and how fast the limit is found again, HTTP 429, per-connection
 caps, speed limits, a complete server outage, pause and resume (including fourteen in two seconds),
 a kill without warning, a file changing on the server, an expiring signed link, checksum mismatch,
-mirrors (including a wrong one), unequal routes, a dead route, a route removed mid-download, hostile
+mirrors (including a wrong one and one that never stops sending), a server answering ranges that end at the last possible byte, the same link downloaded twice at once, a file replaced on a server that names no version, a resume record held by another program, unequal routes, a dead route, a route removed mid-download, hostile
 file names, eighteen downloads at once through the list, concurrent saves of the list, damaged and
 hostile saved state, a file held open by another program, and the bridge refusing unpaired,
 web-page, rebinding, forged, replayed and altered requests. Scheduler and range-set invariants are
@@ -322,8 +331,12 @@ Checked outside `cargo test`, by hand-run scripts in this round:
 - The browser extension is not in any store; it is loaded unpacked.
 - The resume journal is not authenticated. Someone who can already write to your download folder
   could mark bytes of a partial file as done. A checksum, when there is one, still catches it.
-- The window may add a download to any folder you pick; a compromised window could pick for you.
-  The content-security policy allows the window no remote code.
+- The window may add a download to any ordinary folder (`..`, relative paths and `\\?\` or device
+  paths are refused; network shares are allowed); a compromised window could pick one for you.
+  The content-security policy allows the window no remote code, plugins, frames or form targets.
+- A server that names no file version (no ETag, no Last-Modified) is checked by comparing a few
+  samples of the bytes already on disk before a download resumes; a change elsewhere in a file of
+  the same size is not seen without a checksum.
 - A download task that panics would leave its row "running" until restart. None has been seen.
 - Interface changes are pushed by the OS on Windows only; elsewhere they are polled each second.
 - Completed-file hashing needs an expected checksum (given by you or advertised by the server).
