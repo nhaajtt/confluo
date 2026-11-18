@@ -28,6 +28,14 @@ use crate::ranges::RangeSet;
 use crate::sched::{Lease, SchedConfig, Scheduler};
 use crate::tuner::Tuner;
 
+mod paths;
+mod samples;
+mod types;
+
+use paths::*;
+use samples::*;
+pub use types::*;
+
 /// Stand-in end offset while the size of a file is not known.
 const UNKNOWN_END: u64 = u64::MAX / 4;
 const SAMPLE_LEN: u64 = 4096;
@@ -36,179 +44,6 @@ const ETAG_TRUSTED: u8 = 1;
 const ETAG_IGNORED: u8 = 2;
 /// How long a connection with nothing to do stays open waiting for work.
 const PARK_FOR: Duration = Duration::from_secs(4);
-
-/// A way out to the internet: one network interface (or the OS default route).
-#[derive(Debug, Clone)]
-pub struct Route {
-    pub id: String,
-    pub label: String,
-    /// `None` lets the operating system pick the interface.
-    pub bind: Option<BindSpec>,
-    pub limiter: Arc<Limiter>,
-    /// Routes with the same uplink key share one internet connection
-    /// (for example Wi-Fi and Ethernet to the same router).
-    pub uplink: Option<String>,
-}
-
-impl Route {
-    /// The operating system's default route.
-    pub fn system() -> Self {
-        Self {
-            id: "default".into(),
-            label: "System default".into(),
-            bind: None,
-            limiter: Arc::default(),
-            uplink: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Spec {
-    /// The primary link first, then optional mirrors of the same file.
-    pub urls: Vec<Url>,
-    pub dir: PathBuf,
-    /// Overrides the name the server suggests.
-    pub file_name: Option<String>,
-    pub headers: Vec<(String, String)>,
-    pub checksum: Option<Checksum>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Config {
-    pub user_agent: String,
-    pub connect_timeout: Duration,
-    pub header_timeout: Duration,
-    /// A connection that delivers nothing for this long is replaced.
-    pub stall_timeout: Duration,
-    /// Connections each network starts with.
-    pub conns_initial: usize,
-    /// Most connections one network may open.
-    pub conns_max: usize,
-    /// Most connections for the whole download.
-    pub conns_total: usize,
-    pub sched: SchedConfig,
-    /// Bytes gathered per connection before they are handed to the disk thread.
-    pub write_chunk: usize,
-    pub journal_interval: Duration,
-    pub tick: Duration,
-    /// Fail when nothing arrived for this long despite retries. `None` waits forever.
-    pub give_up_after: Option<Duration>,
-    /// Limit shared by every route of this download (and possibly other downloads).
-    pub limiter: Arc<Limiter>,
-    /// Resolution of the progress map in snapshots.
-    pub map_cells: usize,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        let r = RequestOptions::default();
-        Self {
-            user_agent: r.user_agent,
-            connect_timeout: r.connect_timeout,
-            header_timeout: r.header_timeout,
-            stall_timeout: Duration::from_secs(20),
-            conns_initial: 8,
-            conns_max: 32,
-            conns_total: 64,
-            sched: SchedConfig::default(),
-            write_chunk: 256 * 1024,
-            journal_interval: Duration::from_millis(500),
-            tick: Duration::from_millis(250),
-            give_up_after: None,
-            limiter: Arc::default(),
-            map_cells: 256,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Command {
-    Run,
-    /// Stop and keep everything needed to continue later.
-    Pause,
-    /// Stop and delete the partial file.
-    Cancel,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Outcome {
-    Completed { path: PathBuf, size: u64 },
-    Paused,
-    Cancelled,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Phase {
-    Probing,
-    Downloading,
-    /// Requests are failing; retrying with back-off.
-    Retrying,
-    /// No usable network interface right now.
-    WaitingForNetwork,
-    Verifying,
-}
-
-/// The single thing that currently holds the speed back.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Verdict {
-    /// Nothing else stands out: the network path itself.
-    Network,
-    /// The server caps each connection; more connections keep helping.
-    ServerPerConnection,
-    /// The server refuses more connections or requests.
-    ServerRefusing,
-    /// The server cannot resume or split this file: one connection only.
-    ServerSingleStream,
-    Disk,
-    UserLimit,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RouteHealth {
-    Active,
-    Idle,
-    Retrying,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct RouteSnapshot {
-    pub id: String,
-    pub label: String,
-    pub bytes: u64,
-    pub rate: f64,
-    pub connections: usize,
-    pub target: usize,
-    pub health: RouteHealth,
-    pub error: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Snapshot {
-    pub phase: Phase,
-    pub file_name: String,
-    pub size: Option<u64>,
-    pub done: u64,
-    pub rate: f64,
-    pub eta_secs: Option<f64>,
-    pub connections: usize,
-    pub routes: Vec<RouteSnapshot>,
-    /// How complete each slice of the file is, 0..=255.
-    pub map: Vec<u8>,
-    pub verdict: Verdict,
-    /// Two or more active routes share one internet connection, so adding them up gains nothing.
-    pub shared_uplink: bool,
-    /// False when the server cannot resume: an interruption restarts from zero.
-    pub resumable: bool,
-    pub sources: usize,
-    pub steals: u64,
-    /// How long the last flush of the partial file to disk took, in milliseconds.
-    pub flush_ms: u32,
-    pub notes: Vec<String>,
-}
 
 struct Source {
     requested: Url,
@@ -583,92 +418,6 @@ async fn fetch(
     Ok(clean_eof)
 }
 
-async fn fetch_bytes(
-    bind: Option<&BindSpec>,
-    url: &Url,
-    opts: &RequestOptions,
-    start: u64,
-    len: u64,
-) -> Result<Vec<u8>> {
-    let mut slot = None;
-    let ask = Ask { range: Some((start, Some(start + len - 1))), if_range: None };
-    let fetched = http::get(&mut slot, bind, url, opts, &ask).await?;
-    http::check_status(&fetched.response)?;
-    if fetched.response.status() != StatusCode::PARTIAL_CONTENT {
-        return Err(Error::Protocol("no range support".into()));
-    }
-    // One byte more than asked for is enough to tell a wrong answer; reading on would
-    // let a server fill memory.
-    let limited = http_body_util::Limited::new(fetched.response.into_body(), len as usize + 1);
-    let body = tokio::time::timeout(opts.header_timeout, limited.collect())
-        .await
-        .map_err(|_| Error::Timeout("sample"))?
-        .map_err(|_| Error::Protocol("oversized sample".into()))?;
-    let bytes = body.to_bytes();
-    if bytes.len() as u64 != len {
-        return Err(Error::Protocol("short sample".into()));
-    }
-    Ok(bytes.to_vec())
-}
-
-/// Checks that `mirror` serves the same bytes as `primary` at three places.
-async fn same_content(
-    bind: Option<&BindSpec>,
-    primary: &Probe,
-    mirror: &Probe,
-    opts: &RequestOptions,
-) -> Result<bool> {
-    let Some(size) = primary.size else { return Ok(false) };
-    if mirror.size != Some(size) || !mirror.ranges {
-        return Ok(false);
-    }
-    if let (Some(a), Some(b)) = (&primary.sha256, &mirror.sha256) {
-        return Ok(a == b);
-    }
-    let len = SAMPLE_LEN.min(size);
-    for start in [0, (size - len) / 2, size - len] {
-        let (a, b) = tokio::join!(
-            fetch_bytes(bind, &primary.url, opts, start, len),
-            fetch_bytes(bind, &mirror.url, opts, start, len)
-        );
-        if a? != b? {
-            return Ok(false);
-        }
-    }
-    Ok(true)
-}
-
-/// Whether the server's validators show that a journal's bytes belong to the file it serves now.
-fn vouched_for(j: &Journal, p: &Probe) -> bool {
-    matches!((&j.etag, &p.etag), (Some(_), Some(_)))
-        || matches!((&j.last_modified, &p.last_modified), (Some(_), Some(_)))
-}
-
-/// Compares bytes already on disk with what the server sends for the same places:
-/// the start and the end of the first and the last stretch received. A sample that
-/// cannot be fetched proves nothing, so the bytes are kept as before.
-async fn still_the_same(
-    bind: Option<&BindSpec>,
-    primary: &Probe,
-    opts: &RequestOptions,
-    part: &Path,
-    done: &RangeSet,
-) -> bool {
-    let spans = done.spans();
-    let (Some(&(a, b)), Some(&(c, d))) = (spans.first(), spans.last()) else { return true };
-    let mut places = vec![(a, SAMPLE_LEN.min(b - a)), (d - SAMPLE_LEN.min(d - c), SAMPLE_LEN.min(d - c))];
-    places.dedup();
-    for (start, len) in places {
-        let Ok(theirs) = fetch_bytes(bind, &primary.url, opts, start, len).await else { return true };
-        match disk::read_at(part, start, len) {
-            Ok(ours) if ours == theirs => {}
-            Ok(_) => return false,
-            Err(_) => return true,
-        }
-    }
-    true
-}
-
 fn jitter(base: Duration) -> Duration {
     let r = std::collections::hash_map::RandomState::new().build_hasher().finish();
     base.mul_f64(0.8 + (r % 1000) as f64 / 2500.0)
@@ -707,70 +456,6 @@ async fn changed<T>(rx: &mut watch::Receiver<T>, closed: &mut bool) {
         *closed = true;
         std::future::pending::<()>().await;
     }
-}
-
-struct Paths {
-    name: String,
-    part: PathBuf,
-    journal: PathBuf,
-    /// Keeps other downloads in this process away from `part` until this one ends.
-    _claim: Claim,
-}
-
-/// Partial files being written by downloads in this process. A second download of
-/// the same link must neither adopt nor overwrite one of them.
-static IN_USE: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
-
-struct Claim(PathBuf);
-
-impl Drop for Claim {
-    fn drop(&mut self) {
-        IN_USE.lock().unwrap_or_else(std::sync::PoisonError::into_inner).retain(|p| p != &self.0);
-    }
-}
-
-/// Picks the file to write to: an interrupted download of the same link if there
-/// is one, otherwise a name that collides with nothing.
-fn plan_paths(spec: &Spec, p: &Probe) -> (Paths, Option<Journal>) {
-    let mut busy = IN_USE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-    let base = name::sanitize(spec.file_name.as_deref().or(p.file_name.as_deref()).unwrap_or("download"));
-    let part = name::part_path(&spec.dir, &base);
-    let jpath = journal::journal_path(&part);
-    if !busy.contains(&part)
-        && let Some(j) = journal::load(&jpath)
-    {
-        let same_link = match (j.urls.first(), spec.urls.first()) {
-            (Some(recorded), Some(url)) => journal::same_link(recorded, url.as_str()),
-            _ => false,
-        };
-        let same_etag = match (&j.etag, &p.etag) {
-            (Some(a), Some(b)) => a == b,
-            _ => true,
-        };
-        let same_date = match (&j.last_modified, &p.last_modified) {
-            (Some(a), Some(b)) => a == b,
-            _ => true,
-        };
-        let part_ok = std::fs::metadata(&part).is_ok_and(|m| p.size.is_none_or(|s| m.len() == s));
-        if same_link && j.size == p.size && p.size.is_some() && p.ranges && same_etag && same_date && part_ok
-        {
-            busy.push(part.clone());
-            let claim = Claim(part.clone());
-            return (Paths { name: base, part, journal: jpath, _claim: claim }, Some(j));
-        }
-    }
-    let name = name::unique(&spec.dir, &base, |f| {
-        f.exists()
-            || f.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
-                let part = name::part_path(&spec.dir, n);
-                part.exists() || busy.contains(&part)
-            })
-    });
-    let part = name::part_path(&spec.dir, &name);
-    let journal = journal::journal_path(&part);
-    busy.push(part.clone());
-    let claim = Claim(part.clone());
-    (Paths { name, part, journal, _claim: claim }, None)
 }
 
 /// Runs one download until it completes, is paused or cancelled, or fails for good.
