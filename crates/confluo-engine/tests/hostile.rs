@@ -296,7 +296,7 @@ async fn redirect_to_another_site_carries_no_credentials() {
 async fn finished_file_is_marked_as_downloaded() {
     let srv = Server::local(Behavior { size: 100_000, seed: 35, ..Default::default() }).await;
     let dir = tempfile::tempdir().unwrap();
-    let url = srv.url().replacen("http://", "http://someone:hunter2@", 1);
+    let url = srv.url().replacen("http://", "http://someone:hunter2@", 1) + "?sig=s3cr3t";
     let result = run(spec(dir.path(), &[url])).await;
     let Ok(Outcome::Completed { path, .. }) = result else { panic!("{result:?}") };
     let mut stream = path.as_os_str().to_owned();
@@ -304,7 +304,7 @@ async fn finished_file_is_marked_as_downloaded() {
     let mark = std::fs::read_to_string(stream).expect("no mark of the web");
     assert!(mark.contains("ZoneId=3"), "{mark}");
     assert!(mark.contains("HostUrl=http://127.0.0.1"), "{mark}");
-    assert!(!mark.contains("hunter2") && !mark.contains("someone"), "{mark}");
+    assert!(!mark.contains("hunter2") && !mark.contains("someone") && !mark.contains("s3cr3t"), "{mark}");
 }
 
 /// The resume record next to a paused download names its link by a digest, so a
@@ -348,4 +348,33 @@ async fn paused_download_keeps_no_secret_link_on_disk() {
     assert_eq!(std::fs::read(path).unwrap(), content(36, size));
     let again = srv.stats().body_bytes.load(Ordering::Relaxed) - before;
     assert!(again < size - MIB + 2 * MIB, "the resume started over: fetched {again}");
+}
+
+/// A virus scanner holding the resume record for a few seconds must not end the
+/// download: the record is written again later and the file still arrives exact.
+#[cfg(windows)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_locked_resume_record_does_not_stop_the_download() {
+    use std::os::windows::fs::OpenOptionsExt;
+    let size = 8 * MIB;
+    let srv =
+        Server::local(Behavior { size, seed: 37, rate_total: Some(2 * MIB), ..Default::default() }).await;
+    let dir = tempfile::tempdir().unwrap();
+    let journal = dir.path().join("file.confluo-journal");
+    let watch_dir = journal.clone();
+    let locker = std::thread::spawn(move || {
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while !watch_dir.exists() {
+            assert!(std::time::Instant::now() < deadline, "no resume record appeared");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        // No sharing at all: nobody may replace the file while this is open.
+        let held = std::fs::OpenOptions::new().read(true).share_mode(0).open(&watch_dir);
+        std::thread::sleep(Duration::from_secs(3));
+        drop(held);
+    });
+    let result = run(spec(dir.path(), &[srv.url()])).await;
+    locker.join().unwrap();
+    let Ok(Outcome::Completed { path, .. }) = result else { panic!("{result:?}") };
+    assert_eq!(std::fs::read(path).unwrap(), content(37, size));
 }

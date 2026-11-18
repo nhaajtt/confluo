@@ -1261,7 +1261,17 @@ pub async fn download(
         if !whole && now >= next_journal {
             let t = Instant::now();
             match writer.sync().await {
-                Ok(durable) => journal::save(&paths.journal, &journal_of(durable)).map_err(Error::Disk)?,
+                // The journal only speeds up a later resume: a write that fails (a virus
+                // scanner holding the file, say) is tried again next time, and the
+                // download goes on.
+                Ok(durable) => {
+                    if let Err(e) = journal::save(&paths.journal, &journal_of(durable)) {
+                        let note = format!("progress could not be saved for resuming: {e}");
+                        if !notes.contains(&note) {
+                            notes.push(note);
+                        }
+                    }
+                }
                 Err(e) => break 'run Err(Error::Disk(e)),
             }
             // A slow flush (spinning disk) must not eat the disk's time: back off.

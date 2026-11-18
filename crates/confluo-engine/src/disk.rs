@@ -44,7 +44,9 @@ pub struct DiskWriter {
     tx: mpsc::Sender<Cmd>,
     pub stats: Arc<DiskStats>,
     done: Arc<Mutex<RangeSet>>,
-    error: Arc<Mutex<Option<io::Error>>>,
+    /// Why the writer thread stopped, kept so that every later caller is told the
+    /// real cause (a full disk, say) and not just that the writer is gone.
+    error: Arc<Mutex<Option<(io::ErrorKind, String)>>>,
 }
 
 fn write_at(file: &File, mut buf: &[u8], mut offset: u64) -> io::Result<()> {
@@ -87,7 +89,7 @@ impl DiskWriter {
                                     t_stats.written.fetch_add(len, Ordering::Relaxed);
                                 }
                                 Err(e) => {
-                                    *t_error.lock().unwrap() = Some(e);
+                                    *t_error.lock().unwrap() = Some((e.kind(), e.to_string()));
                                     // Closing the queue makes every sender fail fast.
                                     return;
                                 }
@@ -116,11 +118,10 @@ impl DiskWriter {
     }
 
     fn failure(&self) -> io::Error {
-        self.error
-            .lock()
-            .unwrap()
-            .take()
-            .unwrap_or_else(|| io::Error::new(io::ErrorKind::BrokenPipe, "disk writer stopped"))
+        match &*self.error.lock().unwrap() {
+            Some((kind, message)) => io::Error::new(*kind, message.clone()),
+            None => io::Error::new(io::ErrorKind::BrokenPipe, "disk writer stopped"),
+        }
     }
 
     /// Queues a write. Waits when the disk is behind.
@@ -200,13 +201,16 @@ pub fn replace_file(from: &Path, to: &Path) -> io::Result<()> {
 /// Marks a finished download as coming from the internet (the "Mark of the Web"),
 /// so that Windows checks it on opening exactly as it checks a browser download.
 /// File systems without alternate streams (FAT, exFAT) cannot hold the mark;
-/// that is not an error. Credentials in the link are never written.
+/// that is not an error. Credentials and the query of the link are never written.
 pub fn mark_from_internet(path: &Path, from: &url::Url) {
     #[cfg(windows)]
     {
         let mut host = from.clone();
         let _ = host.set_username("");
         let _ = host.set_password(None);
+        // Signed links carry their secret in the query; the address is enough here.
+        host.set_query(None);
+        host.set_fragment(None);
         let mark = format!("[ZoneTransfer]\r\nZoneId=3\r\nHostUrl={host}\r\n");
         let mut stream = path.as_os_str().to_owned();
         stream.push(":Zone.Identifier");
@@ -320,6 +324,20 @@ mod tests {
         assert_eq!(&data[0..5], b"hello");
         assert_eq!(&data[1000..1005], b"world");
         assert!(free_space(dir.path()).unwrap() > 0);
+    }
+
+    #[tokio::test]
+    async fn every_caller_hears_the_real_cause_of_a_disk_failure() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.part");
+        std::fs::write(&path, b"x").unwrap();
+        // Opened for reading only: the first write fails, as on a full or vanished disk.
+        let w = DiskWriter::start(File::open(&path).unwrap(), RangeSet::new());
+        let _ = w.write(0, Bytes::from_static(b"hello")).await;
+        for _ in 0..3 {
+            let e = w.sync().await.unwrap_err();
+            assert_ne!(e.kind(), io::ErrorKind::BrokenPipe, "the cause was lost: {e}");
+        }
     }
 }
 
