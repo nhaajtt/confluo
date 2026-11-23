@@ -320,6 +320,7 @@ async fn paused_download_keeps_no_secret_link_on_disk() {
         ..Default::default()
     })
     .await;
+    // Fake credentials: the test checks they never leak. safe-anything:ignore
     let link = format!("http://someone:hunter2@{}/file?t=tok3n-secret", srv.addr);
     let dir = tempfile::tempdir().unwrap();
     let (_rtx, rrx) = watch::channel(vec![Route::system()]);

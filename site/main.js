@@ -48,11 +48,34 @@ const TITLES = {
   en: "Confluo: every network you have, flowing into one download",
   vi: "Confluo: mọi đường mạng bạn có, chảy về một lần tải",
 };
+// data-vi may carry a little markup; only these tags and attributes are kept, and links must be https
+const ALLOWED = { SPAN: ["class"], A: ["href", "target", "rel"] };
+function viNodes(html) {
+  const out = document.createDocumentFragment();
+  const copy = (from, to) => {
+    for (const c of from.childNodes) {
+      if (c.nodeType === 3) to.append(c.data);
+      else if (c.nodeType !== 1 || ["SCRIPT", "STYLE", "TEMPLATE"].includes(c.tagName)) continue;
+      else if (!ALLOWED[c.tagName]) copy(c, to);
+      else {
+        const el = document.createElement(c.tagName);
+        for (const a of ALLOWED[c.tagName]) {
+          const v = c.getAttribute(a);
+          if (v !== null && (a !== "href" || /^https:\/\//i.test(v))) el.setAttribute(a, v);
+        }
+        copy(c, el);
+        to.append(el);
+      }
+    }
+  };
+  copy(new DOMParser().parseFromString(html, "text/html").body, out);
+  return out;
+}
 const nodes = [...document.querySelectorAll("[data-vi]")];
-for (const n of nodes) n.dataset.en = n.innerHTML;
+const english = new Map(nodes.map((n) => [n, [...n.childNodes].map((c) => c.cloneNode(true))]));
 function setLang(lang) {
   const vi = lang === "vi";
-  for (const n of nodes) n.innerHTML = vi ? n.dataset.vi : n.dataset.en;
+  for (const n of nodes) n.replaceChildren(...(vi ? [viNodes(n.dataset.vi)] : english.get(n).map((c) => c.cloneNode(true))));
   document.querySelectorAll("[data-words]").forEach(splitWords);
   for (const n of document.querySelectorAll("[data-vi-ph]")) {
     n.dataset.enPh ??= n.placeholder;
