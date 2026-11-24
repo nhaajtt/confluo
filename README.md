@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/app-icon.png" width="112" alt="Confluo: a small orange octopus on orange">
+  <img src="app/app-icon.png" width="112" alt="Confluo: the element tile Co, number 16, on orange">
 </p>
 
 <h1 align="center">Confluo</h1>

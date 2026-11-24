@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+New app icon
+- The app, extension and site icon is now an element tile: "Co", Confluo, number 16, on orange.
+
 Safety
 - Finished files carry the Mark of the Web, so Windows checks them like browser downloads.
 - A redirect from a public site to a local address is refused by the address the connection really
